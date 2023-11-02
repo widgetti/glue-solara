@@ -48,7 +48,10 @@
           >
         </span>
       </div>
-      <div style="position: relative; height: calc(100% - 16px)">
+      <div
+        style="position: relative; height: calc(100% - 16px)"
+        @click="bringToForeground(window)"
+      >
         <div
           :id="`solara-window-content-${window.id}`"
           style="
@@ -165,6 +168,16 @@ export default {
       document
         .querySelector(`#solara-window-content-${window.id}`)
         .requestFullscreen();
+    },
+    bringToForeground(window) {
+      const isLastWindow =
+        window == this.frontendWindows[this.frontendWindows.length - 1];
+      if (!isLastWindow) {
+        this.frontendWindows = this.frontendWindows
+          .filter((w) => w.id !== window.id)
+          .concat([window]);
+        this.windows = this.frontendWindows.map((w) => ({ ...w }));
+      }
     },
     coalesceWindows(windows) {
       let xCount = 0;
