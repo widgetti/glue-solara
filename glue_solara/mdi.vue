@@ -92,7 +92,7 @@
 }
 
 .glue-solara__window:last-child .glue-solara__window-header {
-  background-color: #1876d1;
+  background-color: #d0413e;
 }
 </style>
 <script>
