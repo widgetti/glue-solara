@@ -24,7 +24,7 @@
         userSelect: 'none',
         borderRadius: '8px',
         backgroundColor: 'white',
-        opacity: 0.95,
+        opacity: currentWindow ? 0.9 : 1,
       }"
     >
       <div
