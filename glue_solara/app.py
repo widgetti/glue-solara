@@ -382,7 +382,9 @@ def App(app: gj.JupyterApplication):
                             viewer.toolbar,
                             solara.v.Spacer(),
                             ipypopout.PopoutButton.element(
-                                target=viewer.figure_widget,
+                                target=solara.Div(
+                                    style_="height: 99vh", children=[viewer.figure_widget]
+                                ),
                                 window_features="popup,width=600,height=600",
                             ),
                         ],
