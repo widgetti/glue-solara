@@ -1,9 +1,9 @@
+import glue.core.message
+import solara
+from glue.core import DataCollection
 from glue.core.link_helpers import LinkSame
 from glue_jupyter import JupyterApplication
-import solara
 
-from glue.core import DataCollection
-import glue.core.message
 from .hooks import use_glue_watch
 
 
@@ -93,7 +93,7 @@ def Linker(app: JupyterApplication, show_list: bool = True):
 
 @solara.component
 def LinkSelector(
-    data_collection: DataCollection, 
+    data_collection: DataCollection,
     data_dict: list[dict],
     selected_data: solara.Reactive[int],
     selected_row: solara.Reactive[int],
