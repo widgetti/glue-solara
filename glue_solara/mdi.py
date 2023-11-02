@@ -1,10 +1,13 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import solara
 
 
 @solara.component_vue("mdi.vue")
-def Mdi(windows: List[Dict], children: List):
+def Mdi(windows: List[Dict], children: List, size: Optional[str] = None):
+    """
+    :param size: size of header, options "x-small" | "small" | None | "large" | "x-large"
+    """
     pass
 
 
@@ -16,6 +19,7 @@ def Panel1(name: str):
 
 @solara.component
 def Page():
+    size = solara.use_reactive(None)
     content = solara.use_reactive({0: "Aaaa", 1: "Bbbb"})
     windows = solara.use_reactive(
         [
@@ -47,9 +51,15 @@ def Page():
                 style_="height: 100%; display: flex; flex-direction: column; flex-grow: 1"
             ):
                 with solara.Div(style_="flex-grow: 1"):
-                    with Mdi(windows=windows.value, on_windows=update_windows):
+                    with Mdi(windows=windows.value, on_windows=update_windows, size=size.value):
                         for w in windows.value:
                             Panel1(content.value[w["id"]]).key(w["id"])
                 with solara.Div():
+                    with solara.ToggleButtonsSingle(value=size, on_value=size.set):
+                        solara.Button("x-small", value="x-small")
+                        solara.Button("small", value="small")
+                        solara.Button("None", value=None)
+                        solara.Button("large", value="large")
+                        solara.Button("x-large", value="x-large")
                     solara.Button("add window", color="primary", on_click=add)
                     solara.Div(children=[str(windows.value)])

@@ -25,31 +25,42 @@
         borderRadius: '8px',
         backgroundColor: 'white',
         opacity: currentWindow ? 0.9 : 1,
+        display: 'flex',
+        flexDirection: 'column',
       }"
     >
       <div
-        class="glue-solara__window-header"
+        :class="`glue-solara__window-header pl-${sizes.indexOf(size) + 1}`"
+        style="line-height: 0"
         @mousedown.stop="mousedown($event, window, 'drag')"
       >
-        <span style="position: absolute; top: -3px">
-          <v-icon
-            x-small
-            style="color: white; cursor: pointer; padding-left: 4px"
-            @click.stop="remove(window)"
-            @mousedown.stop=""
+        <v-btn
+          icon
+          :x-small="size === 'x-small'"
+          :small="size === 'small'"
+          :large="size === 'large'"
+          :x-large="size === 'x-large'"
+          @click.stop="remove(window)"
+        >
+          <v-icon style="color: white" @mousedown.stop=""
             >mdi-close-circle-outline</v-icon
           >
-          <v-icon
-            x-small
-            style="color: white; cursor: pointer; padding-right: 4px"
-            @click="fullscreen(window)"
-            @mousedown.stop=""
+        </v-btn>
+        <v-btn
+          icon
+          :x-small="size === 'x-small'"
+          :small="size === 'small'"
+          :large="size === 'large'"
+          :x-large="size === 'x-large'"
+          @click="fullscreen(window)"
+        >
+          <v-icon style="color: white" @mousedown.stop=""
             >mdi-fullscreen</v-icon
           >
-        </span>
+        </v-btn>
       </div>
       <div
-        style="position: relative; height: calc(100% - 16px)"
+        style="position: relative; flex-grow: 1"
         @click="bringToForeground(window)"
       >
         <div
@@ -88,7 +99,6 @@
 }
 .glue-solara__window-header {
   background-color: gray;
-  height: 16px;
   cursor: move;
   border-radius: 8px 8px 0 0;
   position: relative;
@@ -102,6 +112,7 @@
 export default {
   data() {
     return {
+      sizes: ["x-small", "small", null, "large", "x-large"],
       fillColors: ["yellow", "red"],
       frontendWindows: [],
       opp: null,

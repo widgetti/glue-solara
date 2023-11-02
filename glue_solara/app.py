@@ -236,7 +236,16 @@ def App(app: gj.JupyterApplication):
         view_type = solara.use_reactive("tabs")
         grid_layout = solara.use_reactive([])
         mdi_layouts = solara.use_reactive([])
+        header_sizes = ["x-small", "small", None, "large", "x-large"]
+        header_size = solara.use_reactive(2)
         with solara.AppBar():
+            if view_type.value == "mdi":
+                solara.Button(
+                    icon_name="mdi-format-size",
+                    color=main_color,
+                    dark=True,
+                    on_click=lambda: header_size.set(header_size.value + 1),
+                )
             LinkButton(app)
             with solara.ToggleButtonsSingle(
                 value=view_type, style={"background-color": "transparent", "color": "white"}
@@ -395,7 +404,12 @@ def App(app: gj.JupyterApplication):
                     viewer_index.value = windows_layout[-1]["id"]
 
                 children = [layouts[spec["id"]] for spec in mdi_layouts.value]
-                with Mdi(children=children, windows=mdi_layouts.value, on_windows=on_windows):
+                with Mdi(
+                    children=children,
+                    windows=mdi_layouts.value,
+                    on_windows=on_windows,
+                    size=header_sizes[header_size.value % len(header_sizes)],
+                ):
                     pass
 
             # solara.Button("Add subset")
