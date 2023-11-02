@@ -30,23 +30,26 @@
         class="glue-solara__window-header"
         @mousedown.stop="mousedown($event, window, 'drag')"
       >
-        <v-icon
-          x-small
-          style="
-            color: white;
-            cursor: pointer;
-            padding-left: 4px;
-            padding-right: 4px;
-            position: absolute;
-            top: 2px;
-          "
-          @click.stop="remove(window)"
-          @mousedown.stop=""
-          >mdi-close-circle-outline</v-icon
-        >
+        <span style="position: absolute; top: -3px">
+          <v-icon
+            x-small
+            style="color: white; cursor: pointer; padding-left: 4px"
+            @click.stop="remove(window)"
+            @mousedown.stop=""
+            >mdi-close-circle-outline</v-icon
+          >
+          <v-icon
+            x-small
+            style="color: white; cursor: pointer; padding-right: 4px"
+            @click="fullscreen(window)"
+            @mousedown.stop=""
+            >mdi-fullscreen</v-icon
+          >
+        </span>
       </div>
       <div style="position: relative; height: calc(100% - 16px)">
         <div
+          :id="`solara-window-content-${window.id}`"
           style="
             height: 100%;
             max-height: 100%;
@@ -158,6 +161,17 @@ export default {
         (w) => w.id !== window.id
       );
       this.windows = this.frontendWindows.map((w) => ({ ...w }));
+    },
+    fullscreen(window) {
+      if (document.fullscreenElement) {
+        // If there is a fullscreen element, exit full screen.
+        document.exitFullscreen();
+        return;
+      }
+      // Make the .element div fullscreen.
+      document
+        .querySelector(`#solara-window-content-${window.id}`)
+        .requestFullscreen();
     },
     coalesceWindows(windows) {
       let xCount = 0;
