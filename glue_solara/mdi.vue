@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="main"
     @mousemove="(e) => move(e)"
     style="
       height: 100%;
@@ -64,12 +65,6 @@
             :widget="children[windows.findIndex((w) => w.id === window.id)]"
           />
         </div>
-        <div
-          v-else
-          :style="{ height: '100%', backgroundColor: fillColors[window.id] }"
-        >
-          order: {{ i }}, id: {{ window.id }}
-        </div>
         <!--        <div class="solara-mdi__resize-corner" @mousedown="mousedown($event, window, 'tl')" style="left: 0; top: 0; cursor: nwse-resize"></div>-->
         <!--        <div class="solara-mdi__resize-corner" @mousedown="mousedown($event, window, 'bl')"  style="left: 0; bottom: 0; cursor: nesw-resize;"></div>-->
         <!--        <div class="solara-mdi__resize-corner" @mousedown="mousedown($event, window, 'tr')"  style="right: 0; top: 0; cursor: nesw-resize;"></div>-->
@@ -105,10 +100,7 @@ export default {
   data() {
     return {
       fillColors: ["yellow", "red"],
-      frontendWindows: [
-        { x: 100, y: 100, width: 200, height: 200, id: 0 },
-        { x: 400, y: 400, width: 200, height: 200, id: 1 },
-      ],
+      frontendWindows: [],
       opp: null,
       currentWindow: null,
       currentWindowCopy: null,
@@ -135,8 +127,9 @@ export default {
     move(e) {
       if (e.buttons === 1) {
         if (this.opp === "drag") {
-          this.currentWindow.x = e.clientX - this.offsetX;
-          this.currentWindow.y = e.clientY - this.offsetY;
+          const rect = this.$refs.main.getBoundingClientRect();
+          this.currentWindow.x = e.clientX - this.offsetX - rect.x;
+          this.currentWindow.y = e.clientY - this.offsetY - rect.y;
         } else if (this.opp === "br") {
           const dx = this.screenX - e.screenX;
           const dy = this.screenY - e.screenY;

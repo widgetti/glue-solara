@@ -40,11 +40,16 @@ def Page():
         windows.value = [*windows.value, {"id": new_id}]
 
     with solara.Div(style="height: 100vh"):
-        with solara.Div(style_="height: 100%; display: flex; flex-direction: column"):
-            with solara.Div(style_="flex-grow: 1"):
-                with Mdi(windows=windows.value, on_windows=update_windows):
-                    for w in windows.value:
-                        Panel1(content.value[w["id"]]).key(w["id"])
-            with solara.Div():
-                solara.Button("add window", color="primary", on_click=add)
-                solara.Div(children=[str(windows.value)])
+        with solara.Div(style_="height: 100%; display: flex"):
+            with solara.Div(style_="width: 444px; border: 2px dashed green"):
+                solara.Text("Some space")
+            with solara.Div(
+                style_="height: 100%; display: flex; flex-direction: column; flex-grow: 1"
+            ):
+                with solara.Div(style_="flex-grow: 1"):
+                    with Mdi(windows=windows.value, on_windows=update_windows):
+                        for w in windows.value:
+                            Panel1(content.value[w["id"]]).key(w["id"])
+                with solara.Div():
+                    solara.Button("add window", color="primary", on_click=add)
+                    solara.Div(children=[str(windows.value)])
