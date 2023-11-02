@@ -8,6 +8,8 @@ description = "Flexible Solara based Glue UI"
 version = "0.0.1"
 dependencies = [
     "solara",
+    "glue-jupyter",
+    "ipypopout",
 ]
 
 [project.optional-dependencies]
