@@ -45,7 +45,6 @@ app_reactive = solara.reactive(None)
 def Page():
     # refs = solara.use_ref([])
     def make() -> gj.JupyterApplication:
-        print("LOAD APP")
         # gauss1 = gj.example_data_xyz(loc=60, scale=30, N=10*1000)
         # gauss2 = gj.example_data_xyz(loc=60, scale=30, N=10*1000)
         d1 = glue.core.Data(label="D1", x=np.random.random(100), y=np.random.random(100))
@@ -64,7 +63,7 @@ def Page():
             data_catalog.style.color = "purple"
             data_image.style.color = "red"
             viewer = app.imshow(data=data_image, show=False)
-            viewer.add_data(data_catalog)
+            # viewer.add_data(data_catalog)
         # app = gj.jglue(gauss1=gauss1, gauss2=gauss2)
         # logger = HubListenerLogger()
         # refs.current.append(logger)
@@ -73,16 +72,13 @@ def Page():
         # app.data_collection.hub.subscribe(logger, glue.core.message.DataCollectionAddMessage)
         
         # return app
-        print(app)
         # breakpoint()
         app_reactive.value = app
     # app : gj.JupyterApplication = solara.use_memo(make, [])
     solara.use_effect(make, [])
     if app_reactive.value is None:
-        print("RENDER !!!")
         solara.Warning("loading")
     else:
-        print("RENDER ???")
         # solara.Warning("loaded")
         App(app_reactive.value)
 
@@ -90,17 +86,19 @@ def Page():
 def App(app: gj.JupyterApplication):
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
+    force_update_counter = solara.use_reactive(0)
 
     # selected_row = solara.use_reactive(0)
-    add_data_index = solara.use_reactive(None)
+    # add_data_index = solara.use_reactive(None)
+    add_new_viewer = solara.use_reactive(None)
     data_viewer = solara.use_reactive("Scatter")
     viewer_index = solara.use_reactive(None)
-    with solara.Column(style={"height": "100%", "background-color": "transparent"}, gap=0):
+    with solara.Column(style={"height": "100%", "background-color": "transparent", "min-height": "800px"}, gap=0):
         solara.Title("Glue")
         with solara.Sidebar():
-            with solara.Column(align="left"):
-                LoadData(app)
-                AddData(app)
+            with solara.Column(align="start"):
+                with solara.Column(classes=["py-4"]):
+                    LoadData(app)
             solara.v.Divider()
             with solara.Card("Data", margin="0", elevation=0):
                 with solara.v.List(dense=True):
@@ -114,7 +112,6 @@ def App(app: gj.JupyterApplication):
                     for index, data in enumerate(data_collection):
                         data = cast(glue.core.Data, data)
                         color = data.style.color
-                        print(color)
                         with solara.v.ListItem():
                             with solara.v.ListItemAvatar():
                                 solara.IconButton("mdi-circle", color=color)
@@ -123,7 +120,28 @@ def App(app: gj.JupyterApplication):
                                     solara.Text(data.label)
                                     # solara.v.Spacer()
                                     # icon = solara.v.Icon(children=["mdi-plus"], color=color)
-                                    solara.Button("", icon_name="mdi-plus", color=color, text=True, on_click=lambda index=index: add_data_index.set(index))
+                                    with solara.Row():
+                                        with solara.Tooltip("Create new viewer"):
+                                            def add_new_viewer_(index=index):
+                                                data = data_collection[index]
+                                                if data.ndim > 1:
+                                                    data_viewer.value = "2D Image"
+                                                else:
+                                                    data_viewer.value = "Scatter"
+                                                add_new_viewer.set(index)
+                                            solara.Button("", icon_name="mdi-tab", color=color, text=True, on_click=add_new_viewer_, icon=True)
+                                        with solara.Tooltip("Add data to current viewer"):
+                                            can_add_viewer = False
+                                            if viewer_index.value is not None:
+                                                viewer = app.viewers[viewer_index.value]
+                                                can_add_viewer = data not in viewer._layer_artist_container.layers
+                                            def add_to_current_viewer(index=index):
+                                                viewer = app.viewers[viewer_index.value]
+                                                viewer.add_data(data_collection[index])
+                                                # unclear why this force update is needed
+                                                force_update_counter.value += 1
+                                            solara.Button("", icon_name="mdi-tab-plus", color=color, text=True, on_click=add_to_current_viewer, icon=True,
+                                                          disabled=not can_add_viewer)
             if viewer_index.value is not None:
                 viewer = app.viewers[viewer_index.value]
                 solara.v.Divider()
@@ -135,41 +153,31 @@ def App(app: gj.JupyterApplication):
                 solara.v.Divider()
                 with solara.Card("Plot options", children=[viewer.viewer_options], margin="0", elevation=0):
                     pass
-            # print(add_data_index)
-            print("RENDER", add_data_index.value, data_viewer.value)
 
-        def add_data_viewer():
-            print("Adding", add_data_index.value, data_viewer.value)
-            if data_viewer.value == "Histogram":
-                app.histogram1d(data=data_collection[add_data_index.value], show=False)
-            elif data_viewer.value == "Scatter":
-                viewer = app.scatter2d(data=data_collection[add_data_index.value], show=False)
-            elif data_viewer.value == "2D Image":
-                viewer = app.imshow(data=data_collection[add_data_index.value], show=False)
-                viewer.add_data(data_collection[add_data_index.value-1])
+        def add_data_viewer(type: str, data: glue.core.Data):
+            mdi_layouts.value = [*mdi_layouts.value, {"id": len(mdi_layouts.value), "width": 800, "height": 600}]
+            data_viewer.set(None)
+            if type == "Histogram":
+                app.histogram1d(data=data, show=False)
+            elif type == "Scatter":
+                app.scatter2d(data=data, show=False)
+            elif type == "2D Image":
+                app.imshow(data=data, show=False)
+                # viewer.add_data(data_collection[add_data_index.value-1])
             if len(data_collection) == 1:
                 grid_layout.value = [{"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},]
             if len(data_collection) == 2:
                 grid_layout.value = [*grid_layout.value, {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0}]
-            mdi_layouts.value = [*mdi_layouts.value, {"id": len(mdi_layouts.value)}]
-        with solara.lab.ConfirmationDialog(open=add_data_index.value is not None, on_close=lambda: add_data_index.set(None), title="Data Viewer", ok="Add", cancel="Cancel", on_ok=add_data_viewer):
+            viewer_index.set(len(app.viewers)-1)
+            force_update_counter.value += 1
+        def on_add_data_viewer():
+            add_data_viewer(data_viewer.value, data_collection[add_new_viewer.value])
+        with solara.lab.ConfirmationDialog(open=add_new_viewer.value is not None, on_close=lambda: add_new_viewer.set(None), title="Data Viewer", ok="Add", cancel="Cancel", on_ok=on_add_data_viewer):
             solara.Select("Data", value=data_viewer, values=["Histogram", "Scatter", "2D Image"])
             
-        print(app.viewers)
         view_type = solara.use_reactive("tabs")
-        grid_layout_initial = [
-                # {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
-                # {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0}
-                # {"h": 5, "i": "1", "moved": False, "w": 5, "x": 3, "y": 0},
-                # {"h": 11, "i": "2", "moved": False, "w": 4, "x": 8, "y": 0},
-                # {"h": 12, "i": "3", "moved": False, "w": 5, "x": 0, "y": 5},
-                # {"h": 6, "i": "4", "moved": False, "w": 3, "x": 5, "y": 5},
-                # {"h": 6, "i": "5", "moved": False, "w": 7, "x": 5, "y": 11},
-        ]
-
-        grid_layout = solara.use_reactive(grid_layout_initial)
+        grid_layout = solara.use_reactive([])
         mdi_layouts = solara.use_reactive([])
-        print("grid_layout", grid_layout.value)
         with solara.AppBar():
             LinkButton(app)
             with solara.ToggleButtonsSingle(value=view_type, style={"background-color": "transparent", "color": "white"}):
@@ -181,32 +189,45 @@ def App(app: gj.JupyterApplication):
                 hub = app.session.hub
                 breakpoint()
             solara.Button("debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala)
-        if view_type.value == "tabs":
-            with solara.lab.Tabs(viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"):
-                for viewer in app.viewers:
-                    # with solara.lab.Tab(str(type(viewer))):
-                    label = viewer.__class__.__name__
-                    label = {
-                        "BqplotScatterView": "2d Scatter",
-                        "BqplotHistogramView": "1d Histogram",
-                        "BqplotImageView": "2d Image",
+        if len(data_collection) == 0:
+            with solara.Row(style={"align-items": "center", "height": "100%", "background-color": "transparent", "justify-content": "center"}):
+                # solara.Text("Load ", style={"font-size": "2em"})
+                LoadData(app)
+        elif len(app.viewers) == 0:
+            with solara.Column(style={"align-items": "center", "height": "100%", "background-color": "transparent", "justify-content": "center"}):
+                solara.Text("What do you want to visualize", style={"font-size": "2em"})
+                with solara.Column(style={"background-color": "transparent"}):
+                    for viewer_type in ["Histogram", "Scatter", "2D Image"]:
+                        # solara.v.Sheet()
+                        def add(viewer_type=viewer_type):
+                            add_data_viewer(viewer_type, data_collection[0])
+                        solara.Button(f"A {viewer_type}", on_click=add, block=True, color=main_color, dark=True)
+        elif view_type.value == "tabs":
+                with solara.lab.Tabs(viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"):
+                    for viewer in app.viewers:
+                        # with solara.lab.Tab(str(type(viewer))):
+                        label = viewer.__class__.__name__
+                        label = {
+                            "BqplotScatterView": "2d Scatter",
+                            "BqplotHistogramView": "1d Histogram",
+                            "BqplotImageView": "2d Image",
 
-                    }.get(label, label)
-                    with solara.lab.Tab(label, style={"height": "100%"}):
-                        toolbar = solara.Row(children=[viewer.toolbar, solara.v.Spacer(), ipypopout.PopoutButton.element(target=viewer._layout,
-                                                                                                                         window_features='popup,width=600,height=600',
-                                                                                                                         )], margin=2)
-                        layout = solara.Column(children=[toolbar, viewer.figure_widget], margin=0, style={"height": "100%",
-                            "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;"
-                        }, classes=["elevation-2"])
+                        }.get(label, label)
+                        with solara.lab.Tab(label, style={"height": "100%"}):
+                            toolbar = solara.Row(children=[viewer.toolbar, solara.v.Spacer(), ipypopout.PopoutButton.element(target=viewer._layout,
+                                                                                                                            window_features='popup,width=600,height=600',
+                                                                                                                            )], margin=2)
+                            layout = solara.Column(children=[toolbar, viewer.figure_widget], margin=0, style={"height": "100%",
+                                "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;"
+                            }, classes=["elevation-2"])
 
-                        solara.Column(children=[layout], style={"height": "100%"})
+                            solara.Column(children=[layout], style={"height": "100%"})
 
-                        # solara.display(viewer._layout)
-        if view_type.value == "grid":
+                            # solara.display(viewer._layout)
+        elif view_type.value == "grid":
             layouts = []
             with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-                
+
                 for viewer in app.viewers:
                     # layouts.append(solara.Card("lala", children=[viewer._layout], style={"height": "100%"}))
                     viewer.figure_widget.layout.height = "600px"
@@ -215,12 +236,11 @@ def App(app: gj.JupyterApplication):
                     }, classes=["elevation-2"])
                     layouts.append(layout)
 
-
                 with solara.GridDraggable(items=layouts, grid_layout=grid_layout.value, resizable=True, draggable=True, on_grid_layout=grid_layout.set):
                     pass
 
 
-        if view_type.value == "mdi":
+        elif view_type.value == "mdi":
             layouts = []
             with solara.Column(style={"height": "100%", "background-color": "transparent"}):
                 for viewer in app.viewers:
@@ -252,11 +272,24 @@ def App(app: gj.JupyterApplication):
 
 @solara.component
 def LoadData(app: gj.JupyterApplication):
-    add = solara.Button("Load data", icon_name="mdi-cloud-outline", color=main_color, dark=True, classes=["my-4"])
+    add = solara.Button("Load data", icon_name="mdi-cloud-outline", color=main_color, dark=True, classes=["my-0"])
     open_load_from_server = solara.use_reactive(False)
     with solara.lab.Menu(activator=add):
         solara.Button("Load data from server", on_click=lambda: open_load_from_server.set(True), text=True, icon_name="mdi-cloud-outline")
         solara.Button("Upload data", text=True, icon_name="mdi-cloud-upload", disabled=True)
+        def add_w5():
+            from glue_jupyter.data import require_data
+            require_data('Astronomy/W5/w5.fits')
+            require_data('Astronomy/W5/w5_psc.csv')
+            data_image = app.load_data('w5.fits')
+            data_catalog = app.load_data('w5_psc.csv')
+            app.add_link(data_catalog, 'RAJ2000', data_image, 'Right Ascension')
+            app.add_link(data_catalog, 'DEJ2000', data_image, 'Declination')
+            data_catalog.style.color = "purple"
+            data_image.style.color = "red"
+            # viewer = app.imshow(data=data_image, show=False)
+            # viewer.add_data(data_catalog)
+        solara.Button("Add W5 data", on_click=add_w5, text=True, icon_name="mdi-brain")
     path = solara.use_reactive(None)
     with solara.v.Dialog(v_model=open_load_from_server.value, on_close=lambda: open_load_from_server.set(False), max_width="800px", persistent=True, scrollable=True, margin="0px"):
         with solara.v.Sheet():
@@ -265,33 +298,12 @@ def LoadData(app: gj.JupyterApplication):
                 with solara.CardActions():
                     solara.v.Spacer()
                     def load():
-                        print("Load", path.value)
+                        # print("Load", path.value)
                         data = app.load_data(str(path.value))
                         data.style.color = nice_colors[len(app.data_collection) % len(nice_colors)]
                         open_load_from_server.value = False
                     solara.Button("Cancel", on_click=lambda: open_load_from_server.set(False), text=True)
                     solara.Button("Load", on_click=lambda: load(), disabled=path.value is None or not path.value.exists(), text=True)
-
-
-@solara.component
-def AddData(app: gj.JupyterApplication):
-    add = solara.Button("Add data", text=True, icon_name="mdi-plus")
-    with solara.lab.Menu(activator=add):
-        def add_d1():
-            d1 = glue.core.Data(label="D1", x=np.random.random(100), y=np.random.random(100))
-            app.session.data_collection.append(d1)
-        solara.Button("Add gaussian blob", add_d1, text=True)
-
-        def add_w5():
-            data_catalog = app.load_data("/Users/maartenbreddels/github/widgetti/glue-solara/w5_psc.csv")
-            data_image = app.load_data("/Users/maartenbreddels/github/widgetti/glue-solara/w5.fits")
-            app.add_link(data_catalog, 'RAJ2000', data_image, 'Right Ascension')
-            app.add_link(data_catalog, 'DEJ2000', data_image, 'Declination')
-            data_catalog.style.color = "purple"
-            data_image.style.color = "red"
-            # viewer = app.imshow(data=data_image, show=False)
-            # viewer.add_data(data_catalog)
-        solara.Button("Add w5", on_click=add_w5, text=True, block=True)
 
 
 @solara.component

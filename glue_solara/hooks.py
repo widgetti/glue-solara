@@ -12,7 +12,7 @@ def use_glue_watch(hub: glue.core.hub.Hub, msg_class=glue.core.message.Message):
     counter, set_counter = solara.use_state(0)
     def on_msg(msg):
         # breakpoint()
-        print("MSG", msg, counter)
+        # print("MSG", msg, counter)
         set_counter(lambda counter: counter + 1)
     def connect():
         listener = DummyListener()

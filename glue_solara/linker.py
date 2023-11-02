@@ -107,7 +107,7 @@ def LinkSelector(
             item_text="label",
             item_value="value",
         )
-        print(selected_data.value, selected_row.value)
+        # print(selected_data.value, selected_row.value)
         solara.Text(f"Attributes for {data_dict[selected_data.value]['label']}")
         with solara.v.List(dense=True):
             with solara.v.ListItemGroup(
