@@ -101,14 +101,19 @@ def App(app: gj.JupyterApplication):
     with solara.Column(
         style={"height": "100%", "background-color": "transparent", "min-height": "800px"}, gap=0
     ):
-        solara.Title("Glue")
-        with solara.Sidebar():
-            with solara.Column(align="start"):
-                with solara.Column(classes=["py-4"]):
-                    LoadData(app)
-            if len(data_collection) == 0:
-                solara.Markdown("*Please load some data*")
-            else:
+        with solara.AppBarTitle():
+            solara.v.Html(
+                tag="img",
+                attributes={"src": "https://glueviz.org/images/histogram.png"},
+                style_="height: 32px; padding-right: 10px; margin-bottom: -4px; margin-left: 5px",
+            ),
+            solara.Text("Glue")
+        solara.Title("Glue on Solara")
+        if len(data_collection) > 0:
+            with solara.Sidebar():
+                with solara.Column(align="start"):
+                    with solara.Column(classes=["py-4"]):
+                        LoadData(app)
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     with solara.v.List(dense=True):
@@ -175,32 +180,28 @@ def App(app: gj.JupyterApplication):
                                                     icon=True,
                                                     disabled=not can_add_viewer,
                                                 )
-            if viewer_index.value is not None:
-                viewer = app.viewers[viewer_index.value]
-                solara.v.Divider()
-                with solara.Card(
-                    "Plot Layers",
-                    children=[
-                        viewer.layer_options,
-                    ],
-                    margin="0",
-                    elevation=0,
-                ):
-                    pass
+                if viewer_index.value is not None:
+                    viewer = app.viewers[viewer_index.value]
+                    solara.v.Divider()
+                    with solara.Card(
+                        "Plot Layers",
+                        children=[
+                            viewer.layer_options,
+                        ],
+                        margin="0",
+                        elevation=0,
+                    ):
+                        pass
 
-                    # solara.display(viewer.layer_options)
-                    # breakpoint()
-                solara.v.Divider()
-                with solara.Card(
-                    "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
-                ):
-                    pass
+                        # solara.display(viewer.layer_options)
+                        # breakpoint()
+                    solara.v.Divider()
+                    with solara.Card(
+                        "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
+                    ):
+                        pass
 
         def add_data_viewer(type: str, data: glue.core.Data):
-            mdi_layouts.value = [
-                *mdi_layouts.value,
-                {"id": len(mdi_layouts.value), "width": 800, "height": 600},
-            ]
             data_viewer.set(None)
             if type == "Histogram":
                 app.histogram1d(data=data, show=False)
@@ -218,6 +219,10 @@ def App(app: gj.JupyterApplication):
                     *grid_layout.value,
                     {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
                 ]
+            mdi_layouts.value = [
+                *mdi_layouts.value,
+                {"id": len(mdi_layouts.value), "width": 800, "height": 600},
+            ]
             viewer_index.set(len(app.viewers) - 1)
             force_update_counter.value += 1
 
@@ -240,44 +245,42 @@ def App(app: gj.JupyterApplication):
         header_sizes = ["x-small", "small", None, "large", "x-large"]
         header_size = solara.use_reactive(2)
         with solara.AppBar():
-            with solara.Row(style={"background-color": "transparent"}):
-                if view_type.value == "mdi":
-                    solara.Button(
-                        icon_name="mdi-format-size",
-                        color=main_color,
-                        dark=True,
-                        on_click=lambda: header_size.set(header_size.value + 1),
-                    )
-                LinkButton(app)
-                with solara.ToggleButtonsSingle(
-                    value=view_type,
-                    style={"background-color": "transparent", "color": "white"},
-                    dense=True,
-                ):
-                    solara.Button(
-                        "Tabs",
-                        value="tabs",
+            if len(app.viewers) > 0:            
+                with solara.Row(style={"background-color": "transparent"}):
+                    if view_type.value == "mdi":
+                        solara.Button(
+                            icon_name="mdi-format-size",
+                            color=main_color,
+                            dark=True,
+                            on_click=lambda: header_size.set(header_size.value + 1),
+                        )
+                    LinkButton(app)
+                    with solara.ToggleButtonsSingle(
+                        value=view_type,
                         style={"background-color": "transparent", "color": "white"},
-                    )
-                    solara.Button(
-                        "Grid",
-                        value="grid",
-                        style={"background-color": "transparent", "color": "white"},
-                    )
-                    solara.Button(
-                        "MDI",
-                        value="mdi",
-                        style={"background-color": "transparent", "color": "white"},
-                    )
+                        dense=True,
+                    ):
+                        solara.Button(
+                            "Tabs",
+                            value="tabs",
+                            style={"background-color": "transparent", "color": "white"},
+                        )
+                        solara.Button(
+                            "Grid",
+                            value="grid",
+                            style={"background-color": "transparent", "color": "white"},
+                        )
+                        solara.Button(
+                            "MDI",
+                            value="mdi",
+                            style={"background-color": "transparent", "color": "white"},
+                        )
 
-                def lala():
-                    app.session.hub
-                    breakpoint()
+                    def lala():
+                        app.session.hub
+                        breakpoint()
 
-                solara.Button(
-                    "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
-                )
-
+                solara.Button("debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala)
         if len(data_collection) == 0:
             with solara.Row(
                 style={
