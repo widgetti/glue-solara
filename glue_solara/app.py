@@ -13,6 +13,7 @@ import solara.lab
 from .hooks import use_glue_watch
 from .linker import Linker
 from .mdi import Mdi
+from .toolbar import ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
@@ -239,36 +240,44 @@ def App(app: gj.JupyterApplication):
         header_sizes = ["x-small", "small", None, "large", "x-large"]
         header_size = solara.use_reactive(2)
         with solara.AppBar():
-            if view_type.value == "mdi":
-                solara.Button(
-                    icon_name="mdi-format-size",
-                    color=main_color,
-                    dark=True,
-                    on_click=lambda: header_size.set(header_size.value + 1),
-                )
-            LinkButton(app)
-            with solara.ToggleButtonsSingle(
-                value=view_type, style={"background-color": "transparent", "color": "white"}
-            ):
-                solara.Button(
-                    "Tabs",
-                    value="tabs",
+            with solara.Row(style={"background-color": "transparent"}):
+                if view_type.value == "mdi":
+                    solara.Button(
+                        icon_name="mdi-format-size",
+                        color=main_color,
+                        dark=True,
+                        on_click=lambda: header_size.set(header_size.value + 1),
+                    )
+                LinkButton(app)
+                with solara.ToggleButtonsSingle(
+                    value=view_type,
                     style={"background-color": "transparent", "color": "white"},
-                )
+                    dense=True,
+                ):
+                    solara.Button(
+                        "Tabs",
+                        value="tabs",
+                        style={"background-color": "transparent", "color": "white"},
+                    )
+                    solara.Button(
+                        "Grid",
+                        value="grid",
+                        style={"background-color": "transparent", "color": "white"},
+                    )
+                    solara.Button(
+                        "MDI",
+                        value="mdi",
+                        style={"background-color": "transparent", "color": "white"},
+                    )
+
+                def lala():
+                    app.session.hub
+                    breakpoint()
+
                 solara.Button(
-                    "Grid",
-                    value="grid",
-                    style={"background-color": "transparent", "color": "white"},
-                )
-                solara.Button(
-                    "MDI", value="mdi", style={"background-color": "transparent", "color": "white"}
+                    "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
                 )
 
-            def lala():
-                app.session.hub
-                breakpoint()
-
-            solara.Button("debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala)
         if len(data_collection) == 0:
             with solara.Row(
                 style={
@@ -309,6 +318,7 @@ def App(app: gj.JupyterApplication):
             ):
                 for viewer in app.viewers:
                     # with solara.lab.Tab(str(type(viewer))):
+                    viewer.figure_widget.layout.height = "600px"
                     label = viewer.__class__.__name__
                     label = {
                         "BqplotScatterView": "2d Scatter",
@@ -316,17 +326,7 @@ def App(app: gj.JupyterApplication):
                         "BqplotImageView": "2d Image",
                     }.get(label, label)
                     with solara.lab.Tab(label, style={"height": "100%"}):
-                        toolbar = solara.Row(
-                            children=[
-                                viewer.toolbar,
-                                solara.v.Spacer(),
-                                ipypopout.PopoutButton.element(
-                                    target=viewer._layout,
-                                    window_features="popup,width=600,height=600",
-                                ),
-                            ],
-                            margin=2,
-                        )
+                        toolbar = ToolBar(app, viewer)
                         layout = solara.Column(
                             children=[toolbar, viewer.figure_widget],
                             margin=0,
@@ -343,13 +343,12 @@ def App(app: gj.JupyterApplication):
         elif view_type.value == "grid":
             layouts = []
             with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-
                 for viewer in app.viewers:
                     # layouts.append(solara.Card("lala", children=[viewer._layout], style={"height": "100%"}))
                     viewer.figure_widget.layout.height = "600px"
                     layout = solara.Column(
                         children=[
-                            solara.Row(children=[viewer.toolbar], margin=2),
+                            ToolBar(app, viewer),
                             viewer.figure_widget,
                         ],
                         margin=0,
@@ -376,23 +375,9 @@ def App(app: gj.JupyterApplication):
                 for viewer in app.viewers:
                     # layouts.append(solara.Card("lala", children=[viewer._layout], style={"height": "100%"}))
                     viewer.figure_widget.layout.height = "100%"
-                    # lala = solara.
-                    toolbar = solara.Row(
-                        children=[
-                            viewer.toolbar,
-                            solara.v.Spacer(),
-                            ipypopout.PopoutButton.element(
-                                target=solara.Div(
-                                    style_="height: calc(100vh - 2px);",
-                                    children=[viewer.figure_widget],
-                                ),
-                                window_features="popup,width=600,height=600",
-                            ),
-                        ],
-                        margin=2,
-                    )
+                    toolbar = ToolBar(app, viewer)
                     layout = solara.Column(
-                        children=[solara.Row(children=[toolbar], margin=2), viewer.figure_widget],
+                        children=[toolbar, viewer.figure_widget],
                         margin=0,
                         style={
                             "height": "100%",
@@ -448,7 +433,13 @@ def LoadData(app: gj.JupyterApplication):
             # viewer = app.imshow(data=data_image, show=False)
             # viewer.add_data(data_catalog)
 
-        solara.Button("Add W5 data", on_click=add_w5, text=True, icon_name="mdi-brain")
+        solara.Button(
+            "Add W5 data",
+            on_click=add_w5,
+            text=True,
+            icon_name="mdi-brain",
+            style={"width": "100%", "justify-content": "left"},
+        )
     path = solara.use_reactive(None)
     with solara.v.Dialog(
         v_model=open_load_from_server.value,
