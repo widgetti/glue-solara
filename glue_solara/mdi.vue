@@ -12,8 +12,9 @@
     @mouseup="mouseup"
   >
     <div
-      v-for="(window, i) in frontendWindows"
-      :key="window.id"
+      v-for="(window, i) in orderedWindows(frontendWindows)"
+      :set="(child = childFor(window))"
+      :key="window.order"
       class="elevation-8 glue-solara__window"
       :style="{
         position: 'absolute',
@@ -30,8 +31,11 @@
       }"
     >
       <div
-        :class="`glue-solara__window-header pl-${sizes.indexOf(size) + 1}`"
-        style="line-height: 0"
+        :class="[
+          `glue-solara__window-header pl-${sizes.indexOf(size) + 1}`,
+          size,
+        ]"
+        style="line-height: 0; color: white"
         @mousedown.stop="mousedown($event, window, 'drag')"
       >
         <v-btn
@@ -41,10 +45,9 @@
           :large="size === 'large'"
           :x-large="size === 'x-large'"
           @click.stop="remove(window)"
+          @mousedown.stop=""
         >
-          <v-icon style="color: white" @mousedown.stop=""
-            >mdi-close-circle-outline</v-icon
-          >
+          <v-icon style="color: white">mdi-close-circle-outline</v-icon>
         </v-btn>
         <v-btn
           icon
@@ -53,18 +56,18 @@
           :large="size === 'large'"
           :x-large="size === 'x-large'"
           @click="fullscreen(window)"
+          @mousedown.stop=""
         >
-          <v-icon style="color: white" @mousedown.stop=""
-            >mdi-fullscreen</v-icon
-          >
+          <v-icon style="color: white">mdi-fullscreen</v-icon>
         </v-btn>
+        {{ window.title ? window.title : "" }}
       </div>
       <div
         style="position: relative; flex-grow: 1"
         @click="bringToForeground(window)"
       >
         <div
-          :id="`solara-window-content-${window.id}`"
+          :id="`solara-window-content-${window.order}`"
           style="
             height: 100%;
             max-height: 100%;
@@ -72,12 +75,7 @@
             overflow: hidden;
           "
         >
-          <jupyter-widget
-            v-if="
-              children && children[windows.findIndex((w) => w.id === window.id)]
-            "
-            :widget="children[windows.findIndex((w) => w.id === window.id)]"
-          />
+          <jupyter-widget v-if="child" :widget="child" />
         </div>
         <!--        <div class="solara-mdi__resize-corner" @mousedown="mousedown($event, window, 'tl')" style="left: 0; top: 0; cursor: nwse-resize"></div>-->
         <!--        <div class="solara-mdi__resize-corner" @mousedown="mousedown($event, window, 'bl')"  style="left: 0; bottom: 0; cursor: nesw-resize;"></div>-->
@@ -102,6 +100,23 @@
   cursor: move;
   border-radius: 8px 8px 0 0;
   position: relative;
+  font-size: 150%;
+}
+
+.glue-solara__window-header.x-small {
+  font-size: 100%;
+}
+
+.glue-solara__window-header.small {
+  font-size: 125%;
+}
+
+.glue-solara__window-header.large {
+  font-size: 175%;
+}
+
+.glue-solara__window-header.x-large {
+  font-size: 200%;
 }
 
 .glue-solara__window:last-child .glue-solara__window-header {
@@ -134,9 +149,8 @@ export default {
       this.offsetX = e.offsetX;
       this.offsetY = e.offsetY;
       /* render current window on top */
-      this.frontendWindows = this.frontendWindows
-        .filter((w) => w.id !== window.id)
-        .concat([window]);
+      this.bringToForeground(window);
+      this.updateBackend();
     },
     move(e) {
       if (e.buttons === 1) {
@@ -161,13 +175,12 @@ export default {
     mouseup() {
       this.currentWindow = null;
       this.opp = null;
-      this.windows = this.frontendWindows.map((w) => ({ ...w }));
+      this.updateBackend();
     },
     remove(window) {
-      this.frontendWindows = this.frontendWindows.filter(
-        (w) => w.id !== window.id
+      this.close(
+        this.frontendWindows.findIndex((w) => w.order === window.order)
       );
-      this.windows = this.frontendWindows.map((w) => ({ ...w }));
     },
     fullscreen(window) {
       if (document.fullscreenElement) {
@@ -177,37 +190,70 @@ export default {
       }
       // Make the .element div fullscreen.
       document
-        .querySelector(`#solara-window-content-${window.id}`)
+        .querySelector(`#solara-window-content-${window.order}`)
         .requestFullscreen();
     },
     bringToForeground(window) {
-      const isLastWindow =
-        window == this.frontendWindows[this.frontendWindows.length - 1];
-      if (!isLastWindow) {
-        this.frontendWindows = this.frontendWindows
-          .filter((w) => w.id !== window.id)
-          .concat([window]);
-        this.windows = this.frontendWindows.map((w) => ({ ...w }));
-      }
+      this.orderedWindows(this.frontendWindows)
+        .filter((w) => w.order !== window.order)
+        .concat([window])
+        .forEach((w, i) => {
+          w.order = i;
+        });
+    },
+    orderedWindows(windows) {
+      return windows
+        .concat()
+        .sort((a, b) => (a.order > b.order ? 1 : a.order < b.order ? -1 : 0));
     },
     coalesceWindows(windows) {
       let xCount = 0;
       let yCount = 0;
+      const orders = windows.filter((w) => w.order != null).map((w) => w.order);
+      let max_order = orders && orders.length ? Math.max(...orders) : -1;
       return windows.map((w) => ({
-        id: w.id,
+        title: w.title,
         x: w.x === undefined ? 100 + 20 * xCount++ : w.x,
         y: w.y === undefined ? 100 + 20 * yCount++ : w.y,
         width: w.width === undefined ? 600 : w.width,
         height: w.height === undefined ? 300 : w.height,
+        order: w.order === undefined ? ++max_order : w.order,
       }));
+    },
+    updateBackend() {
+      if (this.deepEquals(this.frontendWindows, this.windows)) {
+        return;
+      }
+      this.windows = _.cloneDeep(this.frontendWindows);
+    },
+    childFor(window) {
+      return this.children[
+        this.frontendWindows.findIndex((w) => w.order === window.order)
+      ];
+    },
+    deepEquals(a, b) {
+      /* _.isEqual does not work some of the time for some reason */
+      return JSON.stringify(a) === JSON.stringify(b);
     },
   },
   created() {
     this.frontendWindows = this.coalesceWindows(this.windows);
+    this.updateBackend();
   },
   watch: {
     windows(v) {
-      this.frontendWindows = this.coalesceWindows(v);
+      if (this.currentWindow) {
+        /* we don't want an outdated echo after mousedown from the backend during dragging */
+        return;
+      }
+      if (this.deepEquals(this.frontendWindows, v)) {
+        return;
+      }
+      const newWindows = this.coalesceWindows(v);
+      if (!this.deepEquals(this.frontendWindows, newWindows)) {
+        this.frontendWindows = this.coalesceWindows(v);
+      }
+      this.updateBackend();
     },
   },
 };

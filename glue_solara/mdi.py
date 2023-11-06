@@ -1,10 +1,15 @@
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import solara
 
 
 @solara.component_vue("mdi.vue")
-def Mdi(windows: List[Dict], children: List, size: Optional[str] = None):
+def Mdi(
+    windows: List[Dict],
+    children: List,
+    size: Optional[str] = None,
+    event_close: Callable[[int], None] = None,
+):
     """
     :param size: size of header, options "x-small" | "small" | None | "large" | "x-large"
     """
@@ -20,40 +25,36 @@ def Panel1(name: str):
 @solara.component
 def Page():
     size = solara.use_reactive(None)
-    content = solara.use_reactive({0: "Aaaa", 1: "Bbbb"})
-    windows = solara.use_reactive(
-        [
-            {
-                "id": 0,
-            },
-            {
-                "id": 1,
-            },
-        ]
-    )
-
-    def update_windows(new_windows):
-        windows.set(new_windows)
-        content.value = {
-            k: v for k, v in content.value.items() if k in [e["id"] for e in new_windows]
-        }
+    content = solara.use_reactive(["Aaaa", "Bbbb"])
+    windows = solara.use_reactive([{"title": f"title for {t}"} for t in ["Aaaa", "Bbbb"]])
+    name_counter = solara.use_reactive(1)
 
     def add():
-        new_id = max([w["id"] for w in windows.value]) + 1
-        content.value = {**content.value, new_id: str(new_id)}
-        windows.value = [*windows.value, {"id": new_id}]
+        content.value = [*content.value, str(name_counter.value)]
+        windows.value = [*windows.value, {"title": f"title for {name_counter.value}"}]
+        name_counter.value += 1
+
+    def remove(index: Optional[int]):
+        if index is not None:
+            content.value = [e for i, e in enumerate(content.value) if i != index]
+            windows.value = [e for i, e in enumerate(windows.value) if i != index]
 
     with solara.Div(style="height: 100vh"):
         with solara.Div(style_="height: 100%; display: flex"):
-            with solara.Div(style_="width: 444px; border: 2px dashed green"):
+            with solara.Div(style_="width: 444px; min-width: 444px; border: 2px dashed green"):
                 solara.Text("Some space")
             with solara.Div(
                 style_="height: 100%; display: flex; flex-direction: column; flex-grow: 1"
             ):
                 with solara.Div(style_="flex-grow: 1"):
-                    with Mdi(windows=windows.value, on_windows=update_windows, size=size.value):
-                        for w in windows.value:
-                            Panel1(content.value[w["id"]]).key(w["id"])
+                    with Mdi(
+                        windows=windows.value,
+                        on_windows=windows.set,
+                        size=size.value,
+                        event_close=remove,
+                    ):
+                        for c in content.value or []:
+                            Panel1(c).key(c)
                 with solara.Div():
                     with solara.ToggleButtonsSingle(value=size, on_value=size.set):
                         solara.Button("x-small", value="x-small")

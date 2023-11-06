@@ -5,7 +5,6 @@ import glue.core.message
 import glue_jupyter as gj
 import glue_jupyter.app
 import glue_jupyter.registries
-import ipypopout
 import numpy as np
 import solara
 import solara.lab
@@ -219,9 +218,15 @@ def App(app: gj.JupyterApplication):
                     *grid_layout.value,
                     {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
                 ]
+            className = app.viewers[-1].__class__.__name__
+            title = {
+                "BqplotScatterView": "2d Scatter",
+                "BqplotHistogramView": "1d Histogram",
+                "BqplotImageView": "2d Image",
+            }.get(className, className)
             mdi_layouts.value = [
                 *mdi_layouts.value,
-                {"id": len(mdi_layouts.value), "width": 800, "height": 600},
+                {"title": title, "width": 800, "height": 600},
             ]
             viewer_index.set(len(app.viewers) - 1)
             force_update_counter.value += 1
@@ -245,7 +250,7 @@ def App(app: gj.JupyterApplication):
         header_sizes = ["x-small", "small", None, "large", "x-large"]
         header_size = solara.use_reactive(2)
         with solara.AppBar():
-            if len(app.viewers) > 0:            
+            if len(app.viewers) > 0:
                 with solara.Row(style={"background-color": "transparent"}):
                     if view_type.value == "mdi":
                         solara.Button(
@@ -280,7 +285,9 @@ def App(app: gj.JupyterApplication):
                         app.session.hub
                         breakpoint()
 
-                solara.Button("debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala)
+                solara.Button(
+                    "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
+                )
         if len(data_collection) == 0:
             with solara.Row(
                 style={
@@ -392,11 +399,12 @@ def App(app: gj.JupyterApplication):
 
                 def on_windows(windows_layout):
                     mdi_layouts.set(windows_layout)
-                    viewer_index.value = windows_layout[-1]["id"]
+                    sorted = list(enumerate(windows_layout))
+                    sorted.sort(key=lambda x: x[1]["order"])
+                    viewer_index.value = sorted[-1][0]
 
-                children = [layouts[spec["id"]] for spec in mdi_layouts.value]
                 with Mdi(
-                    children=children,
+                    children=layouts,
                     windows=mdi_layouts.value,
                     on_windows=on_windows,
                     size=header_sizes[header_size.value % len(header_sizes)],
