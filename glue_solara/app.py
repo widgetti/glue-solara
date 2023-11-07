@@ -12,7 +12,7 @@ import solara.lab
 from .hooks import use_glue_watch
 from .linker import Linker
 from .mdi import Mdi
-from .toolbar import ToolBar
+from .misc import ToolBar, Snackbar
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
@@ -90,7 +90,9 @@ def Page():
 def App(app: gj.JupyterApplication):
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
-    force_update_counter = solara.use_reactive(0)
+    force_update_counter, set_force_update_counter = solara.use_state(0)
+    show_error = solara.use_reactive(False)
+    error_message = solara.use_reactive("")
 
     # selected_row = solara.use_reactive(0)
     # add_data_index = solara.use_reactive(None)
@@ -168,7 +170,7 @@ def App(app: gj.JupyterApplication):
                                                     viewer = app.viewers[viewer_index.value]
                                                     viewer.add_data(data_collection[index])
                                                     # unclear why this force update is needed
-                                                    force_update_counter.value += 1
+                                                    set_force_update_counter(lambda x: x + 1)
 
                                                 solara.Button(
                                                     "",
@@ -200,6 +202,12 @@ def App(app: gj.JupyterApplication):
                     ):
                         pass
 
+        # Show an error message if data is attempted to be visualized in a way that the data does not have enough dimensions for
+        Snackbar(
+            open_value=show_error,
+            children=[solara.Text(text=f"Error: {error_message.value}", style={"color": "white"})],
+        )
+
         def add_data_viewer(type: str, data: glue.core.Data):
             data_viewer.set(None)
             if type == "Histogram":
@@ -207,7 +215,12 @@ def App(app: gj.JupyterApplication):
             elif type == "Scatter":
                 app.scatter2d(data=data, show=False)
             elif type == "2D Image":
-                app.imshow(data=data, show=False)
+                try:
+                    app.imshow(data=data, show=False)
+                except ValueError as error:
+                    error_message.set(str(error))
+                    show_error.set(True)
+                    return
                 # viewer.add_data(data_collection[add_data_index.value-1])
             if len(data_collection) == 1:
                 grid_layout.value = [
@@ -229,7 +242,7 @@ def App(app: gj.JupyterApplication):
                 {"title": title, "width": 800, "height": 600},
             ]
             viewer_index.set(len(app.viewers) - 1)
-            force_update_counter.value += 1
+            set_force_update_counter(lambda x: x + 1)
 
         def on_add_data_viewer():
             add_data_viewer(data_viewer.value, data_collection[add_new_viewer.value])
@@ -285,9 +298,9 @@ def App(app: gj.JupyterApplication):
                         app.session.hub
                         breakpoint()
 
-                solara.Button(
-                    "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
-                )
+                    solara.Button(
+                        "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
+                    )
         if len(data_collection) == 0:
             with solara.Row(
                 style={
