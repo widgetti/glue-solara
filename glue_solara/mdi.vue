@@ -31,10 +31,7 @@
       }"
     >
       <div
-        :class="[
-          `glue-solara__window-header pl-${sizes.indexOf(size) + 1}`,
-          size,
-        ]"
+        :class="[`glue-solara__window-header`, size]"
         style="line-height: 0; color: white"
         @mousedown.stop="mousedown($event, window, 'drag')"
       >
@@ -60,7 +57,9 @@
         >
           <v-icon style="color: white">mdi-fullscreen</v-icon>
         </v-btn>
-        {{ window.title ? window.title : "" }}
+        <span style="position: relative; top: 2px">
+          {{ window.title ? window.title : "" }}
+        </span>
       </div>
       <div
         style="position: relative; flex-grow: 1"
@@ -101,22 +100,31 @@
   border-radius: 8px 8px 0 0;
   position: relative;
   font-size: 150%;
+  padding-left: 6px;
+}
+
+.glue-solara__window-header .v-btn--icon {
+  width: unset;
 }
 
 .glue-solara__window-header.x-small {
   font-size: 100%;
+  padding-left: 2px;
 }
 
 .glue-solara__window-header.small {
   font-size: 125%;
+  padding-left: 4px;
 }
 
 .glue-solara__window-header.large {
   font-size: 175%;
+  padding-left: 8px;
 }
 
 .glue-solara__window-header.x-large {
   font-size: 200%;
+  padding-left: 10px;
 }
 
 .glue-solara__window:last-child .glue-solara__window-header {
