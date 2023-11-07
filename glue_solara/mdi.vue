@@ -12,9 +12,11 @@
     @mouseup="mouseup"
   >
     <div
-      v-for="(window, i) in orderedWindows(frontendWindows)"
-      :set="(child = childFor(window))"
-      :key="window.order"
+      v-for="[window, child] in orderedWindows(frontendWindows).map((w) => [
+        w,
+        childFor(w),
+      ])"
+      :key="child"
       class="elevation-8 glue-solara__window"
       :style="{
         position: 'absolute',
@@ -250,10 +252,6 @@ export default {
   },
   watch: {
     windows(v) {
-      if (this.currentWindow) {
-        /* we don't want an outdated echo after mousedown from the backend during dragging */
-        return;
-      }
       if (this.deepEquals(this.frontendWindows, v)) {
         return;
       }
