@@ -277,38 +277,40 @@ def GlueApp(app: gj.JupyterApplication):
                         )
         elif view_type.value == "tabs":
             TabbedViewers(app.viewers, viewer_index)
-
         elif view_type.value == "grid":
-            layouts = []
-            with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-                for viewer in app.viewers:
-                    viewer.figure_widget.layout.height = "600px"
-                    layout = solara.Column(
-                        children=[
-                            ToolBar(app, viewer),
-                            viewer.figure_widget,
-                        ],
-                        margin=0,
-                        style={
-                            "height": "100%",
-                            "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-                        },
-                        classes=["elevation-2"],
-                    )
-                    layouts.append(layout)
-
-                with solara.GridDraggable(
-                    items=layouts,
-                    grid_layout=grid_layout.value,
-                    resizable=True,
-                    draggable=True,
-                    on_grid_layout=grid_layout.set,
-                ):
-                    pass
-
+            GridViewers(app.viewers, grid_layout)
         elif view_type.value == "mdi":
             header_size = MDI_HEADER_SIZES[mdi_header_size_index.value]
             MdiViewers(app.viewers, mdi_layouts, header_size, on_viewer_index=viewer_index.set)
+
+
+@solara.component
+def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
+    layouts = []
+    for viewer in viewers:
+        viewer.figure_widget.layout.height = "600px"
+        layout = solara.Column(
+            children=[
+                ToolBar(viewer),
+                viewer.figure_widget,
+            ],
+            margin=0,
+            style={
+                "height": "100%",
+                "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
+            },
+            classes=["elevation-2"],
+        )
+        layouts.append(layout)
+    with solara.Column(style={"height": "100%", "background-color": "transparent"}):
+        with solara.GridDraggable(
+            items=layouts,
+            grid_layout=grid_layout.value,
+            resizable=True,
+            draggable=True,
+            on_grid_layout=grid_layout.set,
+        ):
+            pass
 
 
 @solara.component
