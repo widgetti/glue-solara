@@ -1,0 +1,2 @@
+solara @ https://github.com/widgetti/solara/archive/refs/heads/master.zip
+glue-jupyter
