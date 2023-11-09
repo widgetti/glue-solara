@@ -1,3 +1,5 @@
+from typing import Union
+
 import glue_jupyter as gj
 import ipypopout
 import solara
@@ -24,7 +26,7 @@ def ToolBar(app: gj.JupyterApplication, viewer):
 
 
 @solara.component
-def Snackbar(open_value: bool | solara.Reactive[bool], children: list[solara.Element] = []):
+def Snackbar(open_value: Union[bool, solara.Reactive[bool]], children: list[solara.Element] = []):
     open_value = solara.use_reactive(open_value)
 
     def cleanup(*ignore_args):
