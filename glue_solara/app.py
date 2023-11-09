@@ -230,17 +230,17 @@ def GlueApp(app: gj.JupyterApplication):
                             style={"background-color": "transparent", "color": "white"},
                         )
 
-                    def enter_debugger():
-                        app.session.hub
-                        breakpoint()
+                # def enter_debugger():
+                #     app.session.hub
+                #     breakpoint()
 
-                    solara.Button(
-                        "debug",
-                        icon_name="mdi-bug",
-                        color=main_color,
-                        dark=True,
-                        on_click=enter_debugger,
-                    )
+                # solara.Button(
+                #     "debug",
+                #     icon_name="mdi-bug",
+                #     color=main_color,
+                #     dark=True,
+                #     on_click=enter_debugger,
+                # )
         if len(data_collection) == 0:
             with solara.Row(
                 style={
