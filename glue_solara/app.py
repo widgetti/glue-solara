@@ -44,6 +44,7 @@ nice_colors = [
     "magenta",
 ]
 
+
 @solara.component
 def JupyterApp():
     solara.components.applayout.should_use_embed.provide(True)
@@ -73,8 +74,6 @@ def GlueApp(app: gj.JupyterApplication):
 
     requested_viewer_for_data_index = solara.use_reactive(None)
     requested_viewer_typename = solara.use_reactive("Scatter")
-
-
 
     def add_data_viewer(type: str, data: glue.core.Data):
         if type == "Histogram":
@@ -110,7 +109,6 @@ def GlueApp(app: gj.JupyterApplication):
         viewer_index.set(len(app.viewers) - 1)
         set_force_update_counter(lambda x: x + 1)
 
-
     def request_viewer_for(data: glue.core.Data):
         if data.ndim > 1:
             default_type = "2D Image"
@@ -119,9 +117,10 @@ def GlueApp(app: gj.JupyterApplication):
         requested_viewer_typename.value = default_type
         requested_viewer_for_data_index.value = data_collection.index(data)
 
-
     def add_requested_data_viewer():
-        add_data_viewer(requested_viewer_typename.value, data_collection[requested_viewer_for_data_index.value])
+        add_data_viewer(
+            requested_viewer_typename.value, data_collection[requested_viewer_for_data_index.value]
+        )
 
     def add_to_current_viewer(data: glue.core.Data):
         viewer = app.viewers[viewer_index.value]
@@ -145,14 +144,18 @@ def GlueApp(app: gj.JupyterApplication):
             cancel="Cancel",
             on_ok=add_requested_data_viewer,
         ):
-            solara.Select("Data", value=requested_viewer_typename, values=["Histogram", "Scatter", "2D Image"])
+            solara.Select(
+                "Data", value=requested_viewer_typename, values=["Histogram", "Scatter", "2D Image"]
+            )
 
         with solara.AppBarTitle():
-            solara.v.Html(
-                tag="img",
-                attributes={"src": "https://glueviz.org/images/histogram.png"},
-                style_="height: 32px; padding-right: 10px; margin-bottom: -4px; margin-left: 5px",
-            ),
+            (
+                solara.v.Html(
+                    tag="img",
+                    attributes={"src": "https://glueviz.org/images/histogram.png"},
+                    style_="height: 32px; padding-right: 10px; margin-bottom: -4px; margin-left: 5px",
+                ),
+            )
             solara.Text("Glue")
         solara.Title("Glue on Solara")
         if len(data_collection) > 0:
@@ -162,7 +165,12 @@ def GlueApp(app: gj.JupyterApplication):
                         LoadData(app)
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
-                    DataList(app, active_viewer_index=viewer_index.value, on_add_viewer=request_viewer_for, on_add_data_to_viewer=add_to_current_viewer)
+                    DataList(
+                        app,
+                        active_viewer_index=viewer_index.value,
+                        on_add_viewer=request_viewer_for,
+                        on_add_data_to_viewer=add_to_current_viewer,
+                    )
                 if viewer_index.value is not None:
                     viewer = app.viewers[viewer_index.value]
                     solara.v.Divider()
@@ -181,8 +189,6 @@ def GlueApp(app: gj.JupyterApplication):
                         "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
                     ):
                         pass
-
-
 
         view_type = solara.use_reactive("tabs")
         grid_layout = solara.use_reactive([])
@@ -352,7 +358,12 @@ def GlueApp(app: gj.JupyterApplication):
 
 
 @solara.component
-def DataList(app: gj.JupyterApplication, active_viewer_index: Optional[int], on_add_viewer: Callable[[glue.core.Data], None], on_add_data_to_viewer: Callable[[glue.core.Data], None]):
+def DataList(
+    app: gj.JupyterApplication,
+    active_viewer_index: Optional[int],
+    on_add_viewer: Callable[[glue.core.Data], None],
+    on_add_data_to_viewer: Callable[[glue.core.Data], None],
+):
     # TODO: we need to re-render when new data is added to a viewer
     use_glue_watch(app.session.hub, glue.core.message.DataMessage)
     data_collection = app.data_collection
@@ -375,7 +386,9 @@ def DataList(app: gj.JupyterApplication, active_viewer_index: Optional[int], on_
                                     icon_name="mdi-tab",
                                     color=color,
                                     text=True,
-                                    on_click=lambda index=index: on_add_viewer(data_collection[index]),
+                                    on_click=lambda index=index: on_add_viewer(
+                                        data_collection[index]
+                                    ),
                                     icon=True,
                                 )
                             with solara.Tooltip("Add data to current viewer"):
@@ -383,8 +396,7 @@ def DataList(app: gj.JupyterApplication, active_viewer_index: Optional[int], on_
                                 if active_viewer_index is not None:
                                     viewer = app.viewers[active_viewer_index]
                                     can_add_viewer = (
-                                        data
-                                        not in viewer._layer_artist_container.layers
+                                        data not in viewer._layer_artist_container.layers
                                     )
 
                                 solara.Button(
@@ -392,10 +404,13 @@ def DataList(app: gj.JupyterApplication, active_viewer_index: Optional[int], on_
                                     icon_name="mdi-tab-plus",
                                     color=color,
                                     text=True,
-                                    on_click=lambda index=index: on_add_data_to_viewer(data_collection[index]),
+                                    on_click=lambda index=index: on_add_data_to_viewer(
+                                        data_collection[index]
+                                    ),
                                     icon=True,
                                     disabled=not can_add_viewer,
                                 )
+
 
 @solara.component
 def LoadData(app: gj.JupyterApplication):
