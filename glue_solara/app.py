@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast
+from typing import Callable, Optional, cast
 
 import glue.core.hub
 import glue.core.message
@@ -64,18 +64,89 @@ def Page():
 
 @solara.component
 def GlueApp(app: gj.JupyterApplication):
+    force_update_counter, set_force_update_counter = solara.use_state(0)
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
-    force_update_counter, set_force_update_counter = solara.use_state(0)
+    viewer_index = solara.use_reactive(None)
     show_error = solara.use_reactive(False)
     error_message = solara.use_reactive("")
 
-    add_new_viewer = solara.use_reactive(None)
-    data_viewer = solara.use_reactive("Scatter")
-    viewer_index = solara.use_reactive(None)
+    requested_viewer_for_data_index = solara.use_reactive(None)
+    requested_viewer_typename = solara.use_reactive("Scatter")
+
+
+
+    def add_data_viewer(type: str, data: glue.core.Data):
+        if type == "Histogram":
+            app.histogram1d(data=data, show=False)
+        elif type == "Scatter":
+            app.scatter2d(data=data, show=False)
+        elif type == "2D Image":
+            try:
+                app.imshow(data=data, show=False)
+            except ValueError as error:
+                error_message.set(str(error))
+                show_error.set(True)
+                return
+        if len(data_collection) == 1:
+            grid_layout.value = [
+                {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
+            ]
+        if len(data_collection) == 2:
+            grid_layout.value = [
+                *grid_layout.value,
+                {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
+            ]
+        className = app.viewers[-1].__class__.__name__
+        title = {
+            "BqplotScatterView": "2d Scatter",
+            "BqplotHistogramView": "1d Histogram",
+            "BqplotImageView": "2d Image",
+        }.get(className, className)
+        mdi_layouts.value = [
+            *mdi_layouts.value,
+            {"title": title, "width": 800, "height": 600},
+        ]
+        viewer_index.set(len(app.viewers) - 1)
+        set_force_update_counter(lambda x: x + 1)
+
+
+    def request_viewer_for(data: glue.core.Data):
+        if data.ndim > 1:
+            default_type = "2D Image"
+        else:
+            default_type = "Scatter"
+        requested_viewer_typename.value = default_type
+        requested_viewer_for_data_index.value = data_collection.index(data)
+
+
+    def add_requested_data_viewer():
+        add_data_viewer(requested_viewer_typename.value, data_collection[requested_viewer_for_data_index.value])
+
+    def add_to_current_viewer(data: glue.core.Data):
+        viewer = app.viewers[viewer_index.value]
+        viewer.add_data(data)
+        # unclear why this force update is needed
+        set_force_update_counter(lambda x: x + 1)
+
     with solara.Column(
         style={"height": "100%", "background-color": "transparent", "min-height": "800px"}, gap=0
     ):
+        # Show an error message if data is attempted to be visualized in a way that the data does not have enough dimensions for
+        Snackbar(
+            open_value=show_error,
+            children=[solara.Text(text=f"Error: {error_message.value}", style={"color": "white"})],
+        )
+        with solara.lab.ConfirmationDialog(
+            open=requested_viewer_for_data_index.value is not None,
+            on_close=lambda: requested_viewer_for_data_index.set(None),
+            title="Data Viewer",
+            ok="Add",
+            cancel="Cancel",
+            on_ok=add_requested_data_viewer,
+        ):
+            solara.Select("Data", value=requested_viewer_typename, values=["Histogram", "Scatter", "2D Image"])
+
         with solara.AppBarTitle():
             solara.v.Html(
                 tag="img",
@@ -91,63 +162,7 @@ def GlueApp(app: gj.JupyterApplication):
                         LoadData(app)
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
-                    with solara.v.List(dense=True):
-                        for index, data in enumerate(data_collection):
-                            data = cast(glue.core.Data, data)
-                            color = data.style.color
-                            with solara.v.ListItem():
-                                with solara.v.ListItemAvatar():
-                                    solara.IconButton("mdi-circle", color=color)
-                                with solara.v.ListItemContent():
-                                    with solara.v.ListItemTitle(
-                                        style_="display: flex; justify-content: space-between; align-items: center;"
-                                    ):
-                                        solara.Text(data.label)
-                                        # solara.v.Spacer()
-                                        # icon = solara.v.Icon(children=["mdi-plus"], color=color)
-                                        with solara.Row():
-                                            with solara.Tooltip("Create new viewer"):
-
-                                                def add_new_viewer_(index=index):
-                                                    data = data_collection[index]
-                                                    if data.ndim > 1:
-                                                        data_viewer.value = "2D Image"
-                                                    else:
-                                                        data_viewer.value = "Scatter"
-                                                    add_new_viewer.set(index)
-
-                                                solara.Button(
-                                                    "",
-                                                    icon_name="mdi-tab",
-                                                    color=color,
-                                                    text=True,
-                                                    on_click=add_new_viewer_,
-                                                    icon=True,
-                                                )
-                                            with solara.Tooltip("Add data to current viewer"):
-                                                can_add_viewer = False
-                                                if viewer_index.value is not None:
-                                                    viewer = app.viewers[viewer_index.value]
-                                                    can_add_viewer = (
-                                                        data
-                                                        not in viewer._layer_artist_container.layers
-                                                    )
-
-                                                def add_to_current_viewer(index=index):
-                                                    viewer = app.viewers[viewer_index.value]
-                                                    viewer.add_data(data_collection[index])
-                                                    # unclear why this force update is needed
-                                                    set_force_update_counter(lambda x: x + 1)
-
-                                                solara.Button(
-                                                    "",
-                                                    icon_name="mdi-tab-plus",
-                                                    color=color,
-                                                    text=True,
-                                                    on_click=add_to_current_viewer,
-                                                    icon=True,
-                                                    disabled=not can_add_viewer,
-                                                )
+                    DataList(app, active_viewer_index=viewer_index.value, on_add_viewer=request_viewer_for, on_add_data_to_viewer=add_to_current_viewer)
                 if viewer_index.value is not None:
                     viewer = app.viewers[viewer_index.value]
                     solara.v.Divider()
@@ -167,59 +182,7 @@ def GlueApp(app: gj.JupyterApplication):
                     ):
                         pass
 
-        # Show an error message if data is attempted to be visualized in a way that the data does not have enough dimensions for
-        Snackbar(
-            open_value=show_error,
-            children=[solara.Text(text=f"Error: {error_message.value}", style={"color": "white"})],
-        )
 
-        def add_data_viewer(type: str, data: glue.core.Data):
-            data_viewer.set(None)
-            if type == "Histogram":
-                app.histogram1d(data=data, show=False)
-            elif type == "Scatter":
-                app.scatter2d(data=data, show=False)
-            elif type == "2D Image":
-                try:
-                    app.imshow(data=data, show=False)
-                except ValueError as error:
-                    error_message.set(str(error))
-                    show_error.set(True)
-                    return
-            if len(data_collection) == 1:
-                grid_layout.value = [
-                    {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
-                ]
-            if len(data_collection) == 2:
-                grid_layout.value = [
-                    *grid_layout.value,
-                    {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
-                ]
-            className = app.viewers[-1].__class__.__name__
-            title = {
-                "BqplotScatterView": "2d Scatter",
-                "BqplotHistogramView": "1d Histogram",
-                "BqplotImageView": "2d Image",
-            }.get(className, className)
-            mdi_layouts.value = [
-                *mdi_layouts.value,
-                {"title": title, "width": 800, "height": 600},
-            ]
-            viewer_index.set(len(app.viewers) - 1)
-            set_force_update_counter(lambda x: x + 1)
-
-        def on_add_data_viewer():
-            add_data_viewer(data_viewer.value, data_collection[add_new_viewer.value])
-
-        with solara.lab.ConfirmationDialog(
-            open=add_new_viewer.value is not None,
-            on_close=lambda: add_new_viewer.set(None),
-            title="Data Viewer",
-            ok="Add",
-            cancel="Cancel",
-            on_ok=on_add_data_viewer,
-        ):
-            solara.Select("Data", value=data_viewer, values=["Histogram", "Scatter", "2D Image"])
 
         view_type = solara.use_reactive("tabs")
         grid_layout = solara.use_reactive([])
@@ -387,6 +350,52 @@ def GlueApp(app: gj.JupyterApplication):
                 ):
                     pass
 
+
+@solara.component
+def DataList(app: gj.JupyterApplication, active_viewer_index: Optional[int], on_add_viewer: Callable[[glue.core.Data], None], on_add_data_to_viewer: Callable[[glue.core.Data], None]):
+    # TODO: we need to re-render when new data is added to a viewer
+    use_glue_watch(app.session.hub, glue.core.message.DataMessage)
+    data_collection = app.data_collection
+    with solara.v.List(dense=True):
+        for index, data in enumerate(data_collection):
+            data = cast(glue.core.Data, data)
+            color = data.style.color
+            with solara.v.ListItem():
+                with solara.v.ListItemAvatar():
+                    solara.IconButton("mdi-circle", color=color)
+                with solara.v.ListItemContent():
+                    with solara.v.ListItemTitle(
+                        style_="display: flex; justify-content: space-between; align-items: center;"
+                    ):
+                        solara.Text(data.label)
+                        with solara.Row():
+                            with solara.Tooltip("Create new viewer"):
+                                solara.Button(
+                                    "",
+                                    icon_name="mdi-tab",
+                                    color=color,
+                                    text=True,
+                                    on_click=lambda index=index: on_add_viewer(data_collection[index]),
+                                    icon=True,
+                                )
+                            with solara.Tooltip("Add data to current viewer"):
+                                can_add_viewer = False
+                                if active_viewer_index is not None:
+                                    viewer = app.viewers[active_viewer_index]
+                                    can_add_viewer = (
+                                        data
+                                        not in viewer._layer_artist_container.layers
+                                    )
+
+                                solara.Button(
+                                    "",
+                                    icon_name="mdi-tab-plus",
+                                    color=color,
+                                    text=True,
+                                    on_click=lambda index=index: on_add_data_to_viewer(data_collection[index]),
+                                    icon=True,
+                                    disabled=not can_add_viewer,
+                                )
 
 @solara.component
 def LoadData(app: gj.JupyterApplication):
