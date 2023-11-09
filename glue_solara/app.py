@@ -178,7 +178,7 @@ def GlueApp(app: gj.JupyterApplication):
                         on_add_viewer=request_viewer_for,
                         on_add_data_to_viewer=add_to_current_viewer,
                     )
-                if viewer_index.value is not None:
+                if viewer_index.value is not None and view_type.value != "grid":
                     viewer = app.viewers[viewer_index.value]
                     solara.v.Divider()
                     with solara.Card(
