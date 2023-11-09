@@ -69,6 +69,8 @@ def Page():
 
 @solara.component
 def GlueApp(app: gj.JupyterApplication):
+    # TODO: check if we can limit the messages we listen to
+    # for better performance (less re-renders)
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
     viewer_index = solara.use_reactive(None)
