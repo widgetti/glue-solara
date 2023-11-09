@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Optional, cast
+from typing import Callable, List, Optional, cast
 
 import glue.core.hub
 import glue.core.message
@@ -160,6 +160,11 @@ def GlueApp(app: gj.JupyterApplication):
                 with solara.Column(align="start"):
                     with solara.Column(classes=["py-4"]):
                         LoadData(app)
+                        with solara.Row(style={"align-items": "center"}):
+                            solara.Text(
+                                "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
+                            )
+                            solara.Row(children=[app.widget_subset_mode])
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     DataList(
@@ -269,30 +274,7 @@ def GlueApp(app: gj.JupyterApplication):
                             dark=True,
                         )
         elif view_type.value == "tabs":
-            with solara.lab.Tabs(
-                viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
-            ):
-                for viewer in app.viewers:
-                    viewer.figure_widget.layout.height = "600px"
-                    label = viewer.__class__.__name__
-                    label = {
-                        "BqplotScatterView": "2d Scatter",
-                        "BqplotHistogramView": "1d Histogram",
-                        "BqplotImageView": "2d Image",
-                    }.get(label, label)
-                    with solara.lab.Tab(label, style={"height": "100%"}):
-                        toolbar = ToolBar(app, viewer)
-                        layout = solara.Column(
-                            children=[toolbar, viewer.figure_widget],
-                            margin=0,
-                            style={
-                                "height": "100%",
-                                "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-                            },
-                            classes=["elevation-2"],
-                        )
-
-                        solara.Column(children=[layout], style={"height": "100%"})
+            TabbedViewers(app.viewers, viewer_index)
 
         elif view_type.value == "grid":
             layouts = []
@@ -352,6 +334,34 @@ def GlueApp(app: gj.JupyterApplication):
                     size=header_sizes[header_size.value % len(header_sizes)],
                 ):
                     pass
+
+
+@solara.component
+def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[int]]):
+    with solara.lab.Tabs(
+        viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
+    ):
+        for viewer in viewers:
+            viewer.figure_widget.layout.height = "600px"
+            label = viewer.__class__.__name__
+            label = {
+                "BqplotScatterView": "2d Scatter",
+                "BqplotHistogramView": "1d Histogram",
+                "BqplotImageView": "2d Image",
+            }.get(label, label)
+            with solara.lab.Tab(label, style={"height": "100%"}):
+                toolbar = ToolBar(viewer)
+                layout = solara.Column(
+                    children=[toolbar, viewer.figure_widget],
+                    margin=0,
+                    style={
+                        "height": "100%",
+                        "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
+                    },
+                    classes=["elevation-2"],
+                )
+
+                solara.Column(children=[layout], style={"height": "100%"})
 
 
 @solara.component

@@ -1,16 +1,15 @@
 from typing import Union
 
-import glue_jupyter as gj
 import ipypopout
 import solara
+from glue.viewers.common.viewer import Viewer
 
 
 @solara.component
-def ToolBar(app: gj.JupyterApplication, viewer):
+def ToolBar(viewer: Viewer):
     solara.Row(
         children=[
             viewer.toolbar,
-            app.widget_subset_mode,
             solara.v.Spacer(),
             ipypopout.PopoutButton.element(
                 target=solara.Div(
