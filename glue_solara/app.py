@@ -526,4 +526,5 @@ def Layout(children):
     solara.AppLayout(
         children=children,
         color=main_color,
+        style="height: 100%; overflow: auto;",
     )
