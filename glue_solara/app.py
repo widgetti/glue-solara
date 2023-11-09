@@ -25,11 +25,6 @@ if not Path("w5_psc.csv").exists():
     require_data("Astronomy/W5/w5_psc.csv")
 
 
-class HubListenerLogger(glue.core.hub.HubListener):
-    def notify(self, message):
-        print("!!! message", message)
-
-
 main_color = "#d0413e"
 nice_colors = [
     "red",
