@@ -50,18 +50,14 @@ def JupyterApp():
 
 @solara.component
 def Page():
-    # refs = solara.use_ref([])
     def make() -> gj.JupyterApplication:
-        # gauss1 = gj.example_data_xyz(loc=60, scale=30, N=10*1000)
-        # gauss2 = gj.example_data_xyz(loc=60, scale=30, N=10*1000)
         glue.core.Data(label="D1", x=np.random.random(100), y=np.random.random(100))
         glue.core.Data(label="D2", a=np.random.random(100), b=np.random.random(100))
 
-        # dc = glue.core.DataCollection([d1, d2])
         dc = glue.core.DataCollection([])
         app = glue_jupyter.app.JupyterApplication(data_collection=dc)
-        # app.scatter2d(data=dc[1], show=False)
 
+        # sometimes used for debugging
         if 0:
             data_catalog = app.load_data(
                 "/Users/maartenbreddels/github/widgetti/glue-solara/w5_psc.csv"
@@ -73,23 +69,12 @@ def Page():
             data_image.style.color = "red"
             app.imshow(data=data_image, show=False)
             # viewer.add_data(data_catalog)
-        # app = gj.jglue(gauss1=gauss1, gauss2=gauss2)
-        # logger = HubListenerLogger()
-        # refs.current.append(logger)
-        # # breakpoint()
-        # app.data_collection.hub.subscribe(logger, glue.core.message.Message)
-        # app.data_collection.hub.subscribe(logger, glue.core.message.DataCollectionAddMessage)
-
-        # return app
-        # breakpoint()
         app_reactive.value = app
 
-    # app : gj.JupyterApplication = solara.use_memo(make, [])
     solara.use_effect(make, [])
     if app_reactive.value is None:
         solara.Warning("loading")
     else:
-        # solara.Warning("loaded")
         App(app_reactive.value)
 
 
@@ -101,8 +86,6 @@ def App(app: gj.JupyterApplication):
     show_error = solara.use_reactive(False)
     error_message = solara.use_reactive("")
 
-    # selected_row = solara.use_reactive(0)
-    # add_data_index = solara.use_reactive(None)
     add_new_viewer = solara.use_reactive(None)
     data_viewer = solara.use_reactive("Scatter")
     viewer_index = solara.use_reactive(None)
@@ -125,13 +108,6 @@ def App(app: gj.JupyterApplication):
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     with solara.v.List(dense=True):
-                        # solara.v.Subheader(children=["Data"])
-                        # # with solara.v.ListItemGroup(
-                        # #     v_model=selected_row.value,
-                        # #     on_v_model=lambda i: selected_row.set(i),
-                        # #     color="primary",
-                        # # ):
-                        # if 1:
                         for index, data in enumerate(data_collection):
                             data = cast(glue.core.Data, data)
                             color = data.style.color
@@ -201,8 +177,6 @@ def App(app: gj.JupyterApplication):
                     ):
                         pass
 
-                        # solara.display(viewer.layer_options)
-                        # breakpoint()
                     solara.v.Divider()
                     with solara.Card(
                         "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
@@ -228,7 +202,6 @@ def App(app: gj.JupyterApplication):
                     error_message.set(str(error))
                     show_error.set(True)
                     return
-                # viewer.add_data(data_collection[add_data_index.value-1])
             if len(data_collection) == 1:
                 grid_layout.value = [
                     {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
@@ -301,12 +274,16 @@ def App(app: gj.JupyterApplication):
                             style={"background-color": "transparent", "color": "white"},
                         )
 
-                    def lala():
+                    def enter_debugger():
                         app.session.hub
                         breakpoint()
 
                     solara.Button(
-                        "debug", icon_name="mdi-bug", color=main_color, dark=True, on_click=lala
+                        "debug",
+                        icon_name="mdi-bug",
+                        color=main_color,
+                        dark=True,
+                        on_click=enter_debugger,
                     )
         if len(data_collection) == 0:
             with solara.Row(
@@ -317,7 +294,6 @@ def App(app: gj.JupyterApplication):
                     "justify-content": "center",
                 }
             ):
-                # solara.Text("Load ", style={"font-size": "2em"})
                 LoadData(app)
         elif len(app.viewers) == 0:
             with solara.Column(
@@ -331,7 +307,7 @@ def App(app: gj.JupyterApplication):
                 solara.Text("What do you want to visualize", style={"font-size": "2em"})
                 with solara.Column(style={"background-color": "transparent"}):
                     for viewer_type in ["Histogram", "Scatter", "2D Image"]:
-                        # solara.v.Sheet()
+
                         def add(viewer_type=viewer_type):
                             add_data_viewer(viewer_type, data_collection[0])
 
@@ -347,7 +323,6 @@ def App(app: gj.JupyterApplication):
                 viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
             ):
                 for viewer in app.viewers:
-                    # with solara.lab.Tab(str(type(viewer))):
                     viewer.figure_widget.layout.height = "600px"
                     label = viewer.__class__.__name__
                     label = {
@@ -369,12 +344,10 @@ def App(app: gj.JupyterApplication):
 
                         solara.Column(children=[layout], style={"height": "100%"})
 
-                        # solara.display(viewer._layout)
         elif view_type.value == "grid":
             layouts = []
             with solara.Column(style={"height": "100%", "background-color": "transparent"}):
                 for viewer in app.viewers:
-                    # layouts.append(solara.Card("lala", children=[viewer._layout], style={"height": "100%"}))
                     viewer.figure_widget.layout.height = "600px"
                     layout = solara.Column(
                         children=[
@@ -403,7 +376,6 @@ def App(app: gj.JupyterApplication):
             layouts = []
             with solara.Column(style={"height": "100%", "background-color": "transparent"}):
                 for viewer in app.viewers:
-                    # layouts.append(solara.Card("lala", children=[viewer._layout], style={"height": "100%"}))
                     viewer.figure_widget.layout.height = "100%"
                     toolbar = ToolBar(app, viewer)
                     layout = solara.Column(
@@ -430,9 +402,6 @@ def App(app: gj.JupyterApplication):
                     size=header_sizes[header_size.value % len(header_sizes)],
                 ):
                     pass
-
-            # solara.Button("Add subset")
-            # solara.Button("Add link")
 
 
 @solara.component
@@ -487,7 +456,6 @@ def LoadData(app: gj.JupyterApplication):
                     solara.v.Spacer()
 
                     def load():
-                        # print("Load", path.value)
                         data = app.load_data(str(path.value))
                         data.style.color = nice_colors[len(app.data_collection) % len(nice_colors)]
                         open_load_from_server.value = False
@@ -529,13 +497,9 @@ def LinkButton(app: gj.JupyterApplication):
                     Linker(app)
                     with solara.CardActions():
                         solara.v.Spacer()
-                        # def load():
-                        #     app.load_data(str(path.value))
-                        #     open_link_editor.value = False
                         solara.Button(
                             "Close", on_click=lambda: open_link_editor.set(False), text=True
                         )
-                        # solara.Button("Load", on_click=lambda: load(), disabled=path.value is None or not path.value.exists(), text=True)
 
 
 @solara.component
