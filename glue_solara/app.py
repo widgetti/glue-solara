@@ -8,9 +8,10 @@ import glue_jupyter.app
 import glue_jupyter.registries
 import solara
 import solara.lab
+from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 
-from .hooks import use_glue_watch
+from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
 from .mdi import Mdi
 from .misc import Snackbar, ToolBar
@@ -123,7 +124,7 @@ def GlueApp(app: gj.JupyterApplication):
         )
 
     def add_to_current_viewer(data: glue.core.Data):
-        viewer = app.viewers[viewer_index.value]
+        viewer: Viewer = app.viewers[viewer_index.value]
         viewer.add_data(data)
         # unclear why this force update is needed
         set_force_update_counter(lambda x: x + 1)
@@ -367,6 +368,9 @@ def DataList(
     # TODO: we need to re-render when new data is added to a viewer
     use_glue_watch(app.session.hub, glue.core.message.DataMessage)
     data_collection = app.data_collection
+
+    use_layers_watch(app.viewers)
+
     with solara.v.List(dense=True):
         for index, data in enumerate(data_collection):
             data = cast(glue.core.Data, data)
