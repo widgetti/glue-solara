@@ -200,7 +200,7 @@ def GlueApp(app: gj.JupyterApplication):
                         pass
 
         with solara.AppBar():
-            if len(app.viewers) > 0:
+            if len(data_collection) > 0:
                 with solara.Row(style={"background-color": "transparent"}):
                     if view_type.value == "mdi":
                         solara.Button(
@@ -211,7 +211,7 @@ def GlueApp(app: gj.JupyterApplication):
                                 (mdi_header_size_index.value + 1) % len(MDI_HEADER_SIZES)
                             ),
                         )
-                    LinkButton(app)
+                    LinkButton(app, disabled=len(data_collection) < 2)
                     with solara.ToggleButtonsSingle(
                         value=view_type,
                         style={"background-color": "transparent", "color": "white"},
@@ -495,7 +495,7 @@ def LoadData(app: gj.JupyterApplication):
 
 
 @solara.component
-def LinkButton(app: gj.JupyterApplication):
+def LinkButton(app: gj.JupyterApplication, disabled: bool = False):
     open_link_editor = solara.use_reactive(False)
     with solara.Div():
         solara.Button(
@@ -505,6 +505,7 @@ def LinkButton(app: gj.JupyterApplication):
             style={"background-color": "transparent", "color": "white"},
             dark=False,
             text=True,
+            disabled=disabled,
         )
         with solara.v.Dialog(
             v_model=open_link_editor.value,
