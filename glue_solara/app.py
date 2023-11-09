@@ -38,9 +38,6 @@ nice_colors = [
     "magenta",
 ]
 
-app_reactive = solara.reactive(None)
-
-
 @solara.component
 def JupyterApp():
     solara.components.applayout.should_use_embed.provide(True)
@@ -50,36 +47,17 @@ def JupyterApp():
 
 @solara.component
 def Page():
-    def make() -> gj.JupyterApplication:
-        glue.core.Data(label="D1", x=np.random.random(100), y=np.random.random(100))
-        glue.core.Data(label="D2", a=np.random.random(100), b=np.random.random(100))
+    def create_glue_application() -> gj.JupyterApplication:
+        app = glue_jupyter.app.JupyterApplication()
+        return app
 
-        dc = glue.core.DataCollection([])
-        app = glue_jupyter.app.JupyterApplication(data_collection=dc)
-
-        # sometimes used for debugging
-        if 0:
-            data_catalog = app.load_data(
-                "/Users/maartenbreddels/github/widgetti/glue-solara/w5_psc.csv"
-            )
-            data_image = app.load_data("/Users/maartenbreddels/github/widgetti/glue-solara/w5.fits")
-            app.add_link(data_catalog, "RAJ2000", data_image, "Right Ascension")
-            app.add_link(data_catalog, "DEJ2000", data_image, "Declination")
-            data_catalog.style.color = "purple"
-            data_image.style.color = "red"
-            app.imshow(data=data_image, show=False)
-            # viewer.add_data(data_catalog)
-        app_reactive.value = app
-
-    solara.use_effect(make, [])
-    if app_reactive.value is None:
-        solara.Warning("loading")
-    else:
-        App(app_reactive.value)
+    # make the app only once
+    app = solara.use_memo(create_glue_application, [])
+    GlueApp(app)
 
 
 @solara.component
-def App(app: gj.JupyterApplication):
+def GlueApp(app: gj.JupyterApplication):
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
     force_update_counter, set_force_update_counter = solara.use_state(0)
