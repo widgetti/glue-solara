@@ -49,13 +49,15 @@ TITLE_TRANSLATIONS = {
 
 @solara.component
 def JupyterApp():
-    solara.components.applayout.should_use_embed.provide(True)
+    """Best used in the notebook"""
     with solara.AppLayout(color=main_color):
         Page()
 
 
 @solara.component
 def Page():
+    """This component is used by default in solara server (standalone app)"""
+
     def create_glue_application() -> gj.JupyterApplication:
         app = glue_jupyter.app.JupyterApplication()
         return app
@@ -283,6 +285,7 @@ def GlueApp(app: gj.JupyterApplication):
 
 @solara.component
 def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
+    # this component does not have the concept of an active viewer
     layouts = []
     for viewer in viewers:
         viewer.figure_widget.layout.height = "600px"
@@ -314,6 +317,8 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
 def MdiViewers(
     viewers: List[Viewer], mdi_layouts, header_size, on_viewer_index: Callable[[int], None] = None
 ):
+    # in this component, we only emit the index of the viewer that is active
+    # it cannot be controlled externally (so not a reactive variable)
     layouts = []
     with solara.Column(style={"height": "100%", "background-color": "transparent"}):
         for viewer in viewers:
@@ -347,6 +352,9 @@ def MdiViewers(
 
 @solara.component
 def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[int]]):
+    # The argument viewer_index is a reactive value for bi-directional communication
+    # it can be changed outside of the component (when a new viewer is added)
+    # or by the tab component, when the user clicks on a tab
     with solara.lab.Tabs(
         viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
     ):
@@ -376,10 +384,13 @@ def DataList(
     on_add_viewer: Callable[[glue.core.Data], None],
     on_add_data_to_viewer: Callable[[glue.core.Data], None],
 ):
+    # this makes the component re-render when data is added or removed
     use_glue_watch(app.session.hub, glue.core.message.DataMessage)
-    data_collection = app.data_collection
-
+    # this makes the component re-render when layers are added or removed
     use_layers_watch(app.viewers)
+    # these two hooks (starting with use_) are needed because the data that is changing
+    # is external to solara. These hooks 'hook' up to glue to get notified when state changes
+    data_collection = app.data_collection
 
     with solara.v.List(dense=True):
         for index, data in enumerate(data_collection):
