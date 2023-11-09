@@ -12,7 +12,7 @@ import solara.lab
 from .hooks import use_glue_watch
 from .linker import Linker
 from .mdi import Mdi
-from .misc import ToolBar, Snackbar
+from .misc import Snackbar, ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
@@ -39,6 +39,13 @@ nice_colors = [
 ]
 
 app_reactive = solara.reactive(None)
+
+
+@solara.component
+def JupyterApp():
+    solara.components.applayout.should_use_embed.provide(True)
+    with solara.AppLayout(color=main_color):
+        Page()
 
 
 @solara.component
@@ -533,6 +540,7 @@ def LinkButton(app: gj.JupyterApplication):
 
 @solara.component
 def Layout(children):
-    return solara.AppLayout(
+    solara.AppLayout(
         children=children,
+        color=main_color,
     )
