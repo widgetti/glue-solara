@@ -45,6 +45,12 @@ nice_colors = [
     "magenta",
 ]
 
+TITLE_TRANSLATIONS = {
+    "BqplotScatterView": "2d Scatter",
+    "BqplotHistogramView": "1d Histogram",
+    "BqplotImageView": "2d Image",
+}
+
 
 @solara.component
 def JupyterApp():
@@ -101,12 +107,8 @@ def GlueApp(app: gj.JupyterApplication):
                 *grid_layout.value,
                 {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
             ]
-        className = app.viewers[-1].__class__.__name__
-        title = {
-            "BqplotScatterView": "2d Scatter",
-            "BqplotHistogramView": "1d Histogram",
-            "BqplotImageView": "2d Image",
-        }.get(className, className)
+        class_name = app.viewers[-1].__class__.__name__
+        title = TITLE_TRANSLATIONS.get(class_name, class_name)
         mdi_layouts.value = [
             *mdi_layouts.value,
             {"title": title, "width": 800, "height": 600},
@@ -355,12 +357,8 @@ def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[
     ):
         for viewer in viewers:
             viewer.figure_widget.layout.height = "600px"
-            label = viewer.__class__.__name__
-            label = {
-                "BqplotScatterView": "2d Scatter",
-                "BqplotHistogramView": "1d Histogram",
-                "BqplotImageView": "2d Image",
-            }.get(label, label)
+            class_name = viewer.__class__.__name__
+            label = TITLE_TRANSLATIONS.get(class_name, class_name)
             with solara.lab.Tab(label, style={"height": "100%"}):
                 toolbar = ToolBar(viewer)
                 layout = solara.Column(
