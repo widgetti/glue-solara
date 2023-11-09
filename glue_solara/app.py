@@ -66,7 +66,6 @@ def Page():
 
 @solara.component
 def GlueApp(app: gj.JupyterApplication):
-    force_update_counter, set_force_update_counter = solara.use_state(0)
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
     viewer_index = solara.use_reactive(None)
@@ -108,7 +107,6 @@ def GlueApp(app: gj.JupyterApplication):
             {"title": title, "width": 800, "height": 600},
         ]
         viewer_index.set(len(app.viewers) - 1)
-        set_force_update_counter(lambda x: x + 1)
 
     def request_viewer_for(data: glue.core.Data):
         if data.ndim > 1:
@@ -126,8 +124,6 @@ def GlueApp(app: gj.JupyterApplication):
     def add_to_current_viewer(data: glue.core.Data):
         viewer: Viewer = app.viewers[viewer_index.value]
         viewer.add_data(data)
-        # unclear why this force update is needed
-        set_force_update_counter(lambda x: x + 1)
 
     with solara.Column(
         style={"height": "100%", "background-color": "transparent", "min-height": "800px"}, gap=0
@@ -365,7 +361,6 @@ def DataList(
     on_add_viewer: Callable[[glue.core.Data], None],
     on_add_data_to_viewer: Callable[[glue.core.Data], None],
 ):
-    # TODO: we need to re-render when new data is added to a viewer
     use_glue_watch(app.session.hub, glue.core.message.DataMessage)
     data_collection = app.data_collection
 
