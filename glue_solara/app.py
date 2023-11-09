@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import cast
 
 import glue.core.hub
@@ -5,9 +6,9 @@ import glue.core.message
 import glue_jupyter as gj
 import glue_jupyter.app
 import glue_jupyter.registries
-import numpy as np
 import solara
 import solara.lab
+from glue_jupyter.data import require_data
 
 from .hooks import use_glue_watch
 from .linker import Linker
@@ -16,6 +17,11 @@ from .misc import Snackbar, ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
+
+if not Path("w5.fits").exists():
+    require_data("Astronomy/W5/w5.fits")
+if not Path("w5_psc.csv").exists():
+    require_data("Astronomy/W5/w5_psc.csv")
 
 
 class HubListenerLogger(glue.core.hub.HubListener):
@@ -398,10 +404,6 @@ def LoadData(app: gj.JupyterApplication):
         solara.Button("Upload data", text=True, icon_name="mdi-cloud-upload", disabled=True)
 
         def add_w5():
-            from glue_jupyter.data import require_data
-
-            require_data("Astronomy/W5/w5.fits")
-            require_data("Astronomy/W5/w5_psc.csv")
             data_image = app.load_data("w5.fits")
             data_catalog = app.load_data("w5_psc.csv")
             app.add_link(data_catalog, "RAJ2000", data_image, "Right Ascension")
