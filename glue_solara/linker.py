@@ -1,34 +1,9 @@
 import glue.core.message
 import solara
 from glue.core import DataCollection
-from glue.core.link_helpers import LinkSame
 from glue_jupyter import JupyterApplication
 
 from .hooks import use_glue_watch
-
-
-def add_link(data_collection, data1, attribute1, data2, attribute2):
-    """
-    Add a simple identity link between two attributes.
-
-    Parameters
-    ----------
-    data1 : `~glue.core.data.Data`
-        The dataset containing the first attribute.
-    attribute1 : str or `~glue.core.component_id.ComponentID`
-        The first attribute to link.
-    data2 : `~glue.core.data.Data`
-        The dataset containing the first attribute.
-    attribute2 : str or `~glue.core.component_id.ComponentID`
-        The first attribute to link.
-    """
-    # For now this assumes attribute1 and attribute2 are strings and single
-    # attributes. In future we should generalize this while keeping the
-    # simplest use case simple.
-    att1 = data1.id[attribute1]
-    att2 = data2.id[attribute2]
-    link = LinkSame(att1, att2)
-    data_collection.add_link(link)
 
 
 def stringify_links(link):
@@ -48,8 +23,7 @@ def Linker(app: JupyterApplication, show_list: bool = True):
         return solara.Text("No data loaded")
 
     def _add_link():
-        add_link(
-            data_collection,
+        app.add_link(
             data_collection[selected_data1.value],
             data_collection[selected_data1.value].components[selected_row1.value],
             data_collection[selected_data2.value],
