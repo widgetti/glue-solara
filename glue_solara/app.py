@@ -13,7 +13,7 @@ from glue_jupyter.data import require_data
 
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
-from .mdi import Mdi
+from .mdi import MDI_HEADER_SIZES, Mdi
 from .misc import Snackbar, ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
@@ -74,6 +74,11 @@ def GlueApp(app: gj.JupyterApplication):
 
     requested_viewer_for_data_index = solara.use_reactive(None)
     requested_viewer_typename = solara.use_reactive("Scatter")
+
+    view_type = solara.use_reactive("tabs")  # tabs, grid, mdi
+    mdi_layouts = solara.use_reactive([])
+    grid_layout = solara.use_reactive([])
+    mdi_header_size_index = solara.use_reactive(2)
 
     def add_data_viewer(type: str, data: glue.core.Data):
         if type == "Histogram":
@@ -192,11 +197,6 @@ def GlueApp(app: gj.JupyterApplication):
                     ):
                         pass
 
-        view_type = solara.use_reactive("tabs")
-        grid_layout = solara.use_reactive([])
-        mdi_layouts = solara.use_reactive([])
-        header_sizes = ["x-small", "small", None, "large", "x-large"]
-        header_size = solara.use_reactive(2)
         with solara.AppBar():
             if len(app.viewers) > 0:
                 with solara.Row(style={"background-color": "transparent"}):
@@ -205,7 +205,9 @@ def GlueApp(app: gj.JupyterApplication):
                             icon_name="mdi-format-size",
                             color=main_color,
                             dark=True,
-                            on_click=lambda: header_size.set(header_size.value + 1),
+                            on_click=lambda: mdi_header_size_index.set(
+                                (mdi_header_size_index.value + 1) % len(MDI_HEADER_SIZES)
+                            ),
                         )
                     LinkButton(app)
                     with solara.ToggleButtonsSingle(
@@ -305,35 +307,43 @@ def GlueApp(app: gj.JupyterApplication):
                     pass
 
         elif view_type.value == "mdi":
-            layouts = []
-            with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-                for viewer in app.viewers:
-                    viewer.figure_widget.layout.height = "100%"
-                    toolbar = ToolBar(app, viewer)
-                    layout = solara.Column(
-                        children=[toolbar, viewer.figure_widget],
-                        margin=0,
-                        style={
-                            "height": "100%",
-                            "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-                        },
-                        classes=["elevation-2"],
-                    )
-                    layouts.append(layout)
+            header_size = MDI_HEADER_SIZES[mdi_header_size_index.value]
+            MdiViewers(app.viewers, mdi_layouts, header_size, on_viewer_index=viewer_index.set)
 
-                def on_windows(windows_layout):
-                    mdi_layouts.set(windows_layout)
-                    sorted = list(enumerate(windows_layout))
-                    sorted.sort(key=lambda x: x[1]["order"])
-                    viewer_index.value = sorted[-1][0]
 
-                with Mdi(
-                    children=layouts,
-                    windows=mdi_layouts.value,
-                    on_windows=on_windows,
-                    size=header_sizes[header_size.value % len(header_sizes)],
-                ):
-                    pass
+@solara.component
+def MdiViewers(
+    viewers: List[Viewer], mdi_layouts, header_size, on_viewer_index: Callable[[int], None] = None
+):
+    layouts = []
+    with solara.Column(style={"height": "100%", "background-color": "transparent"}):
+        for viewer in viewers:
+            viewer.figure_widget.layout.height = "100%"
+            toolbar = ToolBar(viewer)
+            layout = solara.Column(
+                children=[toolbar, viewer.figure_widget],
+                margin=0,
+                style={
+                    "height": "100%",
+                    "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
+                },
+                classes=["elevation-2"],
+            )
+            layouts.append(layout)
+
+        def on_windows(windows_layout):
+            mdi_layouts.set(windows_layout)
+            sorted = list(enumerate(windows_layout))
+            sorted.sort(key=lambda x: x[1]["order"])
+            on_viewer_index(sorted[-1][0])
+
+        with Mdi(
+            children=layouts,
+            windows=mdi_layouts.value,
+            on_windows=on_windows,
+            size=header_size,
+        ):
+            pass
 
 
 @solara.component

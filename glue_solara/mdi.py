@@ -2,6 +2,8 @@ from typing import Callable, Dict, List, Optional
 
 import solara
 
+MDI_HEADER_SIZES = ["x-small", "small", None, "large", "x-large"]
+
 
 @solara.component_vue("mdi.vue")
 def Mdi(
