@@ -16,7 +16,11 @@ repos:
         stages: [commit]
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.213"
+    rev: "v0.1.5"
     hooks:
+      # Run the linter.
       - id: ruff
+        stages: [commit]
+      # Run the formatter.
+      - id: ruff-format
         stages: [commit]
