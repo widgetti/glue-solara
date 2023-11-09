@@ -221,13 +221,13 @@ def GlueApp(app: gj.JupyterApplication):
                             style={"background-color": "transparent", "color": "white"},
                         )
                         solara.Button(
-                            "Grid",
-                            value="grid",
+                            "MDI",
+                            value="mdi",
                             style={"background-color": "transparent", "color": "white"},
                         )
                         solara.Button(
-                            "MDI",
-                            value="mdi",
+                            "Grid",
+                            value="grid",
                             style={"background-color": "transparent", "color": "white"},
                         )
 
