@@ -159,8 +159,8 @@ def GlueApp(app: gj.JupyterApplication):
                     style_="height: 32px; padding-right: 10px; margin-bottom: -4px; margin-left: 5px",
                 ),
             )
-            solara.Text("Glue")
-        solara.Title("Glue on Solara")
+            solara.Text("glue")
+        solara.Title("glue on solara")
         if len(data_collection) > 0:
             with solara.Sidebar():
                 with solara.Column(align="start"):
