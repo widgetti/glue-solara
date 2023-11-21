@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Callable, List, Optional, cast
 
@@ -11,6 +12,7 @@ import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 
+from .ai import AutoLink
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
 from .mdi import MDI_HEADER_SIZES, Mdi
@@ -165,13 +167,18 @@ def GlueApp(app: gj.JupyterApplication):
         if len(data_collection) > 0:
             with solara.Sidebar():
                 with solara.Column(align="start"):
-                    with solara.Column(classes=["py-4"]):
+                    with solara.Row(
+                        classes=["py-4"], justify="space-between", style={"width": "100%"}
+                    ):
                         LoadData(app)
                         with solara.Row(style={"align-items": "center"}):
                             solara.Text(
                                 "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
                             )
                             solara.Row(children=[app.widget_subset_mode])
+                        if os.getenv("OPENAI_API_KEY"):
+                            AutoLink(app)
+
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     DataList(
