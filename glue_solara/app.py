@@ -11,6 +11,7 @@ import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 
+from .ai import AutoLink
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
 from .mdi import MDI_HEADER_SIZES, Mdi
@@ -164,8 +165,10 @@ def GlueApp(app: gj.JupyterApplication):
         if len(data_collection) > 0:
             with solara.Sidebar():
                 with solara.Column(align="start"):
-                    with solara.Column(classes=["py-4"]):
-                        LoadData(app)
+                    with solara.Column(classes=["py-4"], style={"width": "100%"}):
+                        with solara.Row(justify="space-between"):
+                            LoadData(app)
+                            AutoLink(app)
                         with solara.Row(style={"align-items": "center"}):
                             solara.Text(
                                 "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
