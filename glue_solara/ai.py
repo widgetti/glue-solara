@@ -147,6 +147,7 @@ def poll(openai, thread_id: solara.Reactive[str], run_id: solara.Reactive[str], 
                 run_id=run_id.value,
                 tool_outputs=tool_outputs,
             )
+            time.sleep(0.1)
         if run.status == "completed":
             run_id.set(None)
             thread_id.set(None)
