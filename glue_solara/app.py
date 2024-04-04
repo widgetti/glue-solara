@@ -44,6 +44,7 @@ TITLE_TRANSLATIONS = {
     "BqplotScatterView": "2d Scatter",
     "BqplotHistogramView": "1d Histogram",
     "BqplotImageView": "2d Image",
+    "ModelViewer": "3d Model",
 }
 
 
@@ -97,6 +98,8 @@ def GlueApp(app: gj.JupyterApplication):
                 error_message.set(str(error))
                 show_error.set(True)
                 return
+        elif type == "3D Model":
+            app.modelviewer(data=data, viewer_height="100%", show=False)
         if len(data_collection) == 1:
             grid_layout.value = [
                 {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
@@ -148,7 +151,9 @@ def GlueApp(app: gj.JupyterApplication):
             on_ok=add_requested_data_viewer,
         ):
             solara.Select(
-                "Data", value=requested_viewer_typename, values=["Histogram", "Scatter", "2D Image"]
+                "Data",
+                value=requested_viewer_typename,
+                values=["Histogram", "Scatter", "2D Image", "3D Model"],
             )
 
         with solara.AppBarTitle():
@@ -264,7 +269,7 @@ def GlueApp(app: gj.JupyterApplication):
             ):
                 solara.Text("What do you want to visualize", style={"font-size": "2em"})
                 with solara.Column(style={"background-color": "transparent"}):
-                    for viewer_type in ["Histogram", "Scatter", "2D Image"]:
+                    for viewer_type in ["Histogram", "Scatter", "2D Image", "3D Model"]:
 
                         def add(viewer_type=viewer_type):
                             add_data_viewer(viewer_type, data_collection[0])
@@ -317,7 +322,10 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
 
 @solara.component
 def MdiViewers(
-    viewers: List[Viewer], mdi_layouts, header_size, on_viewer_index: Callable[[int], None] = None
+    viewers: List[Viewer],
+    mdi_layouts,
+    header_size,
+    on_viewer_index: Callable[[int], None] = None,
 ):
     # in this component, we only emit the index of the viewer that is active
     # it cannot be controlled externally (so not a reactive variable)
@@ -464,11 +472,35 @@ def LoadData(app: gj.JupyterApplication):
             # viewer = app.imshow(data=data_image, show=False)
             # viewer.add_data(data_catalog)
 
+        def add_random_data():
+            import numpy as np
+
+            rand = np.random.random((100, 5))
+            path = "data_rand.txt"
+
+            rand_str = []
+
+            for set in rand:
+                rand_str.append(",".join([str(nr) for nr in set]))
+
+            with open(path, "w") as file:
+                file.write("x, y, z, colors, sizes \n" + "\n".join(rand_str))
+
+            app.load_data(path)
+
         solara.Button(
             "Add W5 data",
             on_click=add_w5,
             text=True,
             icon_name="mdi-brain",
+            style={"width": "100%", "justify-content": "left"},
+        )
+
+        solara.Button(
+            "Add random data",
+            on_click=add_random_data,
+            text=True,
+            icon_name="mdi-chart-scatter-plot",
             style={"width": "100%", "justify-content": "left"},
         )
     path = solara.use_reactive(None)
