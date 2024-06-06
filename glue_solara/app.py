@@ -8,8 +8,14 @@ import glue_jupyter.app
 import glue_jupyter.registries
 import solara
 import solara.lab
+from glue_jupyter.registries import viewer_registry
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
+
+import glue_jupyter.bqplot.histogram
+import glue_jupyter.bqplot.image
+import glue_jupyter.bqplot.scatter
+
 
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
@@ -39,6 +45,12 @@ nice_colors = [
     "cyan",
     "magenta",
 ]
+
+VIEWER_TYPES = list(map(lambda k: k.title(), viewer_registry.members.keys()))
+
+VIEWER_METHODS = {'Histogram': 'histogram1d',
+                  'Scatter': 'scatter2d',
+                  'Image': 'imshow'}
 
 TITLE_TRANSLATIONS = {
     "BqplotScatterView": "2d Scatter",
@@ -86,17 +98,15 @@ def GlueApp(app: gj.JupyterApplication):
     mdi_header_size_index = solara.use_reactive(2)
 
     def add_data_viewer(type: str, data: glue.core.Data):
-        if type == "Histogram":
-            app.histogram1d(data=data, show=False)
-        elif type == "Scatter":
-            app.scatter2d(data=data, show=False)
-        elif type == "2D Image":
-            try:
-                app.imshow(data=data, show=False)
-            except ValueError as error:
-                error_message.set(str(error))
-                show_error.set(True)
-                return
+        if type in VIEWER_METHODS:
+            getattr(app, VIEWER_METHODS[type])(data=data, show=False)
+        else:
+            # manual approach...
+            viewer_cls = viewer_registry.members[type.lower()]['cls']
+            viewer_state_obj = viewer_cls._state_cls()
+            # NOTE: some viewers should set x_att or have other checks which this skips
+            app.new_data_viewer(viewer_cls, data=data,
+                                state=viewer_state_obj, show=False)
         if len(data_collection) == 1:
             grid_layout.value = [
                 {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
@@ -116,7 +126,7 @@ def GlueApp(app: gj.JupyterApplication):
 
     def request_viewer_for(data: glue.core.Data):
         if data.ndim > 1:
-            default_type = "2D Image"
+            default_type = "Image"
         else:
             default_type = "Scatter"
         requested_viewer_typename.value = default_type
@@ -148,7 +158,7 @@ def GlueApp(app: gj.JupyterApplication):
             on_ok=add_requested_data_viewer,
         ):
             solara.Select(
-                "Data", value=requested_viewer_typename, values=["Histogram", "Scatter", "2D Image"]
+                "Data", value=requested_viewer_typename, values=VIEWER_TYPES
             )
 
         with solara.AppBarTitle():
@@ -262,15 +272,15 @@ def GlueApp(app: gj.JupyterApplication):
                     "justify-content": "center",
                 }
             ):
-                solara.Text("What do you want to visualize", style={"font-size": "2em"})
+                solara.Text("What do you want to visualize?", style={"font-size": "2em"})
                 with solara.Column(style={"background-color": "transparent"}):
-                    for viewer_type in ["Histogram", "Scatter", "2D Image"]:
+                    for viewer_type in VIEWER_TYPES:
 
                         def add(viewer_type=viewer_type):
                             add_data_viewer(viewer_type, data_collection[0])
 
                         solara.Button(
-                            f"A {viewer_type}",
+                            f"{'An' if viewer_type[0] in ('AEOIU') else 'A'} {viewer_type}",
                             on_click=add,
                             block=True,
                             color=main_color,
