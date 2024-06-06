@@ -10,6 +10,7 @@ dependencies = [
     "solara",
     "glue-jupyter",
     "ipypopout",
+    "openai",
 ]
 
 [project.optional-dependencies]
