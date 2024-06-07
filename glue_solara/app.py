@@ -70,7 +70,7 @@ class AppAPI:
     @property
     def plugins(self):
         # return only the API objects
-        return {p[1].name: p[1] for p in self._plugins}
+        return {p[1].name: p[1] for p in self._plugins if p[1]._is_relevant.value}
 
     def show(self):
         solara.display(GlueApp(self._app, self._plugins))
