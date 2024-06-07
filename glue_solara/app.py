@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, List, Optional, cast
+from typing import Any, Callable, List, Tuple, Optional, cast
 
 import glue.core.hub
 import glue.core.message
@@ -49,6 +49,33 @@ TITLE_TRANSLATIONS = {
 }
 
 
+def create_glue_application() -> gj.JupyterApplication:
+    app = glue_jupyter.app.JupyterApplication()
+    return app
+
+def init_plugins(app) -> list[Tuple[Callable, Any]]:
+    return [(glue_solara.plugins.multiply_primary.PluginUI,
+             glue_solara.plugins.multiply_primary.PluginState(app))]
+
+
+class AppAPI:
+    def __init__(self):
+        self._app = glue_jupyter.app.JupyterApplication()
+        self._plugins = init_plugins(self._app)
+
+    @property
+    def glue_app(self):
+        return self._app
+
+    @property
+    def plugins(self):
+        # return only the API objects
+        return {p[1].name: p[1] for p in self._plugins}
+
+    def show(self):
+        solara.display(GlueApp(self._app, self._plugins))
+
+
 @solara.component
 def JupyterApp():
     """Best used in the notebook"""
@@ -60,18 +87,14 @@ def JupyterApp():
 def Page():
     """This component is used by default in solara server (standalone app)"""
 
-    def create_glue_application() -> gj.JupyterApplication:
-        app = glue_jupyter.app.JupyterApplication()
-        return app
-
-    # make the app only once
+    # make the app and plugins list only once
     app = solara.use_memo(create_glue_application, [])
-    # app = solara.use_reactive(glue_jupyter.app.JupyterApplication())
-    GlueApp(app)
+    plugins = solara.use_memo(lambda: init_plugins(app), [])
+    GlueApp(app, plugins)
 
 
 @solara.component
-def GlueApp(app: gj.JupyterApplication):
+def GlueApp(app: gj.JupyterApplication, plugins: List[Tuple[Callable, Any]] = []):
     # TODO: check if we can limit the messages we listen to
     # for better performance (less re-renders)
     use_glue_watch(app.session.hub, glue.core.message.Message)
@@ -87,10 +110,6 @@ def GlueApp(app: gj.JupyterApplication):
     mdi_layouts = solara.use_reactive([])
     grid_layout = solara.use_reactive([])
     mdi_header_size_index = solara.use_reactive(2)
-
-    state = solara.use_memo(lambda: glue_solara.plugins.multiply_primary.PluginState(app), [])
-    ui = glue_solara.plugins.multiply_primary.PluginUI
-    plugins = solara.use_reactive([(ui, state)])
 
     def add_data_viewer(type: str, data: glue.core.Data):
         if type == "Histogram":
@@ -208,8 +227,8 @@ def GlueApp(app: gj.JupyterApplication):
                         ):
                             pass
 
-                for plugin, plugin_state in plugins.value:
-                    if plugin_state.is_relevant.value:
+                for plugin, plugin_state in plugins:
+                    if plugin_state._is_relevant.value:
                         with solara.Details(
                             summary=plugin_state.name,
                             expand=False
