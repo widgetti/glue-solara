@@ -11,6 +11,8 @@ import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 
+import glue_solara.plugins.multiply_primary
+
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
 from .mdi import MDI_HEADER_SIZES, Mdi
@@ -64,6 +66,7 @@ def Page():
 
     # make the app only once
     app = solara.use_memo(create_glue_application, [])
+    # app = solara.use_reactive(glue_jupyter.app.JupyterApplication())
     GlueApp(app)
 
 
@@ -84,6 +87,10 @@ def GlueApp(app: gj.JupyterApplication):
     mdi_layouts = solara.use_reactive([])
     grid_layout = solara.use_reactive([])
     mdi_header_size_index = solara.use_reactive(2)
+
+    state = solara.use_memo(lambda: glue_solara.plugins.multiply_primary.PluginState(app), [])
+    ui = glue_solara.plugins.multiply_primary.PluginUI
+    plugins = solara.use_reactive([(ui, state)])
 
     def add_data_viewer(type: str, data: glue.core.Data):
         if type == "Histogram":
@@ -171,32 +178,44 @@ def GlueApp(app: gj.JupyterApplication):
                                 "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
                             )
                             solara.Row(children=[app.widget_subset_mode])
-                solara.v.Divider()
-                with solara.Card("Data", margin="0", elevation=0):
+                with solara.Details("Data", expand=False).key('data'):
                     DataList(
                         app,
                         active_viewer_index=viewer_index.value,
                         on_add_viewer=request_viewer_for,
                         on_add_data_to_viewer=add_to_current_viewer,
                     )
-                if viewer_index.value is not None and view_type.value != "grid":
-                    viewer = app.viewers[viewer_index.value]
-                    solara.v.Divider()
-                    with solara.Card(
-                        "Plot Layers",
-                        children=[
-                            viewer.layer_options,
-                        ],
-                        margin="0",
-                        elevation=0,
-                    ):
-                        pass
 
-                    solara.v.Divider()
-                    with solara.Card(
-                        "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
-                    ):
-                        pass
+                if viewer_index.value is not None and view_type.value != "grid":
+                    with solara.Details(
+                        summary="Plot Options",
+                        expand=False
+                    ).key('plot-options'):
+                        viewer = app.viewers[viewer_index.value]
+                        with solara.Card(
+                            "Plot Layers",
+                            children=[
+                                viewer.layer_options,
+                            ],
+                            margin="0",
+                            elevation=0,
+                        ):
+                            pass
+
+
+                        with solara.Card(
+                            "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
+                        ):
+                            pass
+
+                for plugin, plugin_state in plugins.value:
+                    if plugin_state.is_relevant.value:
+                        with solara.Details(
+                            summary=plugin_state.name,
+                            expand=False
+                        ).key(f'plugin-{plugin_state.name}'):
+                            plugin(state=plugin_state)
+
 
         with solara.AppBar():
             if len(data_collection) > 0:
