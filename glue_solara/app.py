@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, List, Optional, cast
+from typing import Any, Callable, List, Tuple, Optional, cast
 
 import glue.core.hub
 import glue.core.message
@@ -10,6 +10,8 @@ import solara
 import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
+
+import glue_solara.plugins.multiply_primary
 
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
@@ -47,6 +49,33 @@ TITLE_TRANSLATIONS = {
 }
 
 
+def create_glue_application() -> gj.JupyterApplication:
+    app = glue_jupyter.app.JupyterApplication()
+    return app
+
+def init_plugins(app) -> list[Tuple[Callable, Any]]:
+    return [(glue_solara.plugins.multiply_primary.PluginUI,
+             glue_solara.plugins.multiply_primary.PluginState(app))]
+
+
+class AppAPI:
+    def __init__(self):
+        self._app = glue_jupyter.app.JupyterApplication()
+        self._plugins = init_plugins(self._app)
+
+    @property
+    def glue_app(self):
+        return self._app
+
+    @property
+    def plugins(self):
+        # return only the API objects
+        return {p[1].name: p[1] for p in self._plugins if p[1]._is_relevant.value}
+
+    def show(self):
+        solara.display(GlueApp(self._app, self._plugins))
+
+
 @solara.component
 def JupyterApp():
     """Best used in the notebook"""
@@ -58,17 +87,14 @@ def JupyterApp():
 def Page():
     """This component is used by default in solara server (standalone app)"""
 
-    def create_glue_application() -> gj.JupyterApplication:
-        app = glue_jupyter.app.JupyterApplication()
-        return app
-
-    # make the app only once
+    # make the app and plugins list only once
     app = solara.use_memo(create_glue_application, [])
-    GlueApp(app)
+    plugins = solara.use_memo(lambda: init_plugins(app), [])
+    GlueApp(app, plugins)
 
 
 @solara.component
-def GlueApp(app: gj.JupyterApplication):
+def GlueApp(app: gj.JupyterApplication, plugins: List[Tuple[Callable, Any]] = []):
     # TODO: check if we can limit the messages we listen to
     # for better performance (less re-renders)
     use_glue_watch(app.session.hub, glue.core.message.Message)
@@ -171,32 +197,44 @@ def GlueApp(app: gj.JupyterApplication):
                                 "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
                             )
                             solara.Row(children=[app.widget_subset_mode])
-                solara.v.Divider()
-                with solara.Card("Data", margin="0", elevation=0):
+                with solara.Details("Data", expand=False).key('data'):
                     DataList(
                         app,
                         active_viewer_index=viewer_index.value,
                         on_add_viewer=request_viewer_for,
                         on_add_data_to_viewer=add_to_current_viewer,
                     )
-                if viewer_index.value is not None and view_type.value != "grid":
-                    viewer = app.viewers[viewer_index.value]
-                    solara.v.Divider()
-                    with solara.Card(
-                        "Plot Layers",
-                        children=[
-                            viewer.layer_options,
-                        ],
-                        margin="0",
-                        elevation=0,
-                    ):
-                        pass
 
-                    solara.v.Divider()
-                    with solara.Card(
-                        "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
-                    ):
-                        pass
+                if viewer_index.value is not None and view_type.value != "grid":
+                    with solara.Details(
+                        summary="Plot Options",
+                        expand=False
+                    ).key('plot-options'):
+                        viewer = app.viewers[viewer_index.value]
+                        with solara.Card(
+                            "Plot Layers",
+                            children=[
+                                viewer.layer_options,
+                            ],
+                            margin="0",
+                            elevation=0,
+                        ):
+                            pass
+
+
+                        with solara.Card(
+                            "Plot options", children=[viewer.viewer_options], margin="0", elevation=0
+                        ):
+                            pass
+
+                for plugin, plugin_state in plugins:
+                    if plugin_state._is_relevant.value:
+                        with solara.Details(
+                            summary=plugin_state.name,
+                            expand=False
+                        ).key(f'plugin-{plugin_state.name}'):
+                            plugin(state=plugin_state)
+
 
         with solara.AppBar():
             if len(data_collection) > 0:
