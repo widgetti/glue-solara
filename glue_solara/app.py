@@ -11,7 +11,7 @@ import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 
-from .hooks import use_glue_watch, use_layers_watch
+from .hooks import ClosedMessage, use_glue_watch, use_glue_watch_close, use_layers_watch
 from .linker import Linker
 from .mdi import MDI_HEADER_SIZES, Mdi
 from .misc import Snackbar, ToolBar
@@ -72,6 +72,7 @@ def GlueApp(app: gj.JupyterApplication):
     # TODO: check if we can limit the messages we listen to
     # for better performance (less re-renders)
     use_glue_watch(app.session.hub, glue.core.message.Message)
+    use_glue_watch_close(app)
     data_collection = app.data_collection
     viewer_index = solara.use_reactive(None)
     show_error = solara.use_reactive(False)
@@ -343,10 +344,20 @@ def MdiViewers(
             sorted.sort(key=lambda x: x[1]["order"])
             on_viewer_index(sorted[-1][0])
 
+        def on_close(index):
+            new_layouts = mdi_layouts.value
+            new_layouts.pop(index)
+            mdi_layouts.set(new_layouts)
+            on_viewer_index(None)
+            # Close the viewer
+            message = ClosedMessage(viewers[index])
+            viewers[index].session.hub.broadcast(message)
+
         with Mdi(
             children=layouts,
             windows=mdi_layouts.value,
             on_windows=on_windows,
+            event_close=on_close,
             size=header_size,
         ):
             pass
