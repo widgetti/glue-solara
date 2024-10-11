@@ -290,7 +290,7 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
     # this component does not have the concept of an active viewer
     layouts = []
     for viewer in viewers:
-        viewer.figure_widget.layout.height = "600px"
+        viewer.figure_widget.layout.height = "100%"
         layout = solara.Column(
             children=[
                 ToolBar(viewer),
@@ -361,7 +361,7 @@ def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[
         viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
     ):
         for viewer in viewers:
-            viewer.figure_widget.layout.height = "600px"
+            viewer.figure_widget.layout.height = "calc(100vh - 250px)"
             class_name = viewer.__class__.__name__
             label = TITLE_TRANSLATIONS.get(class_name, class_name)
             with solara.lab.Tab(label, style={"height": "100%"}):
