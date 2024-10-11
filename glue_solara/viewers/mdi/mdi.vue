@@ -74,6 +74,8 @@
             max-height: 100%;
             max-width: 100%;
             overflow: hidden;
+            border-radius: 0 0 8px 8px;
+            background-color: var(--color-background);
           "
         >
           <jupyter-widget v-if="child" :widget="child" />

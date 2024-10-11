@@ -43,7 +43,7 @@ def TabbedViewers(
         viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
     ):
         for viewer in viewers:
-            viewer.figure_widget.layout.height = "600px"
+            viewer.figure_widget.layout.height = "calc(100vh - 250px)"
             class_name = viewer.__class__.__name__
             title = TITLE_TRANSLATIONS.get(class_name, class_name)
             label = TabLabel(viewer, close_viewer, title)

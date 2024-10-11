@@ -166,14 +166,13 @@ def GlueApp(app: gj.JupyterApplication):
         solara.Title("glue on solara")
         if len(data_collection) > 0:
             with solara.Sidebar():
-                with solara.Column(align="start"):
-                    with solara.Column(classes=["py-4"]):
-                        LoadData(app)
-                        with solara.Row(style={"align-items": "center"}):
-                            solara.Text(
-                                "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
-                            )
-                            solara.Row(children=[app.widget_subset_mode])
+                with solara.Card(margin=0, elevation=0):
+                    LoadData(app)
+                    with solara.Row(style={"align-items": "center"}, classes=["mt-3"]):
+                        solara.Text(
+                            "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
+                        )
+                        solara.Row(children=[app.widget_subset_mode])
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     DataList(
