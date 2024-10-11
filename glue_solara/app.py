@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, cast
 
 import glue.core.hub
-import glue.core.message
+import glue.core.message as msg
 import glue_jupyter as gj
 import glue_jupyter.app
 import glue_jupyter.registries
@@ -74,7 +74,7 @@ def Page():
 def GlueApp(app: gj.JupyterApplication):
     # TODO: check if we can limit the messages we listen to
     # for better performance (less re-renders)
-    use_glue_watch(app.session.hub, glue.core.message.Message)
+    use_glue_watch(app.session.hub, msg.DataCollectionMessage)
     use_glue_watch_close(app)
     data_collection = app.data_collection
     viewer_index: Reactive[Optional[int]] = solara.use_reactive(None)
@@ -347,7 +347,7 @@ def DataList(
     on_add_data_to_viewer: Callable[[glue.core.Data], None],
 ):
     # this makes the component re-render when data is added or removed
-    use_glue_watch(app.session.hub, glue.core.message.DataMessage)
+    use_glue_watch(app.session.hub, msg.DataCollectionMessage)
     # this makes the component re-render when layers are added or removed
     use_layers_watch(app.viewers)
     # these two hooks (starting with use_) are needed because the data that is changing
@@ -485,13 +485,14 @@ def LinkButton(app: gj.JupyterApplication, disabled: bool = False):
             margin="0px",
         ):
             with solara.v.Sheet():
-                with solara.Card("Link Editor", margin="0px"):
-                    Linker(app)
-                    with solara.CardActions():
-                        solara.v.Spacer()
-                        solara.Button(
-                            "Close", on_click=lambda: open_link_editor.set(False), text=True
-                        )
+                if open_link_editor.value:
+                    with solara.Card("Link Editor", margin="0px"):
+                        Linker(app)
+                        with solara.CardActions():
+                            solara.v.Spacer()
+                            solara.Button(
+                                "Close", on_click=lambda: open_link_editor.set(False), text=True
+                            )
 
 
 @solara.component
