@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, List, Optional, cast
+from typing import Callable, Dict, List, Optional, cast
 
 import glue.core.hub
 import glue.core.message
@@ -10,10 +10,11 @@ import solara
 import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
+from solara import Reactive
 
 from .hooks import use_glue_watch, use_layers_watch
 from .linker import Linker
-from .mdi import MDI_HEADER_SIZES, Mdi
+from .mdi import MDI_HEADER_SIZES, Mdi, MdiWindow
 from .misc import Snackbar, ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
@@ -73,7 +74,7 @@ def GlueApp(app: gj.JupyterApplication):
     # for better performance (less re-renders)
     use_glue_watch(app.session.hub, glue.core.message.Message)
     data_collection = app.data_collection
-    viewer_index = solara.use_reactive(None)
+    viewer_index: Reactive[Optional[int]] = solara.use_reactive(None)
     show_error = solara.use_reactive(False)
     error_message = solara.use_reactive("")
 
@@ -81,8 +82,8 @@ def GlueApp(app: gj.JupyterApplication):
     requested_viewer_typename = solara.use_reactive("Scatter")
 
     view_type = solara.use_reactive("tabs")  # tabs, grid, mdi
-    mdi_layouts = solara.use_reactive([])
-    grid_layout = solara.use_reactive([])
+    mdi_layouts: Reactive[List[MdiWindow]] = solara.use_reactive([])
+    grid_layout: Reactive[List[Dict]] = solara.use_reactive([])
     mdi_header_size_index = solara.use_reactive(2)
 
     def add_data_viewer(type: str, data: glue.core.Data):
@@ -317,7 +318,10 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
 
 @solara.component
 def MdiViewers(
-    viewers: List[Viewer], mdi_layouts, header_size, on_viewer_index: Callable[[int], None] = None
+    viewers: List[Viewer],
+    mdi_layouts: Reactive[List[MdiWindow]],
+    header_size,
+    on_viewer_index: Optional[Callable[[int], None]] = None,
 ):
     # in this component, we only emit the index of the viewer that is active
     # it cannot be controlled externally (so not a reactive variable)

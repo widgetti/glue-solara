@@ -1,16 +1,27 @@
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional, TypedDict
 
 import solara
+from typing_extensions import NotRequired
 
 MDI_HEADER_SIZES = ["x-small", "small", None, "large", "x-large"]
 
 
+class MdiWindow(TypedDict):
+    title: str
+    width: int
+    height: int
+    x: NotRequired[int]
+    y: NotRequired[int]
+    order: NotRequired[int]
+
+
 @solara.component_vue("mdi.vue")
 def Mdi(
-    windows: List[Dict],
+    windows: List[MdiWindow],
+    on_windows: Callable[[List[MdiWindow]], None],
     children: List,
     size: Optional[str] = None,
-    event_close: Callable[[int], None] = None,
+    event_close: Optional[Callable[[int], None]] = None,
 ):
     """
     :param size: size of header, options "x-small" | "small" | None | "large" | "x-large"
