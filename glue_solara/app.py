@@ -165,14 +165,13 @@ def GlueApp(app: gj.JupyterApplication):
         solara.Title("glue on solara")
         if len(data_collection) > 0:
             with solara.Sidebar():
-                with solara.Column(align="start"):
-                    with solara.Column(classes=["py-4"]):
-                        LoadData(app)
-                        with solara.Row(style={"align-items": "center"}):
-                            solara.Text(
-                                "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
-                            )
-                            solara.Row(children=[app.widget_subset_mode])
+                with solara.Card(margin=0, elevation=0):
+                    LoadData(app)
+                    with solara.Row(style={"align-items": "center"}, classes=["mt-3"]):
+                        solara.Text(
+                            "Subset mode:", style={"font-size": "1.2em", "font-weight": "bold"}
+                        )
+                        solara.Row(children=[app.widget_subset_mode])
                 solara.v.Divider()
                 with solara.Card("Data", margin="0", elevation=0):
                     DataList(
@@ -292,7 +291,7 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
     # this component does not have the concept of an active viewer
     layouts = []
     for viewer in viewers:
-        viewer.figure_widget.layout.height = "600px"
+        viewer.figure_widget.layout.height = "100%"
         layout = solara.Column(
             children=[
                 ToolBar(viewer),
@@ -376,7 +375,7 @@ def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[
         viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
     ):
         for viewer in viewers:
-            viewer.figure_widget.layout.height = "600px"
+            viewer.figure_widget.layout.height = "calc(100vh - 250px)"
             class_name = viewer.__class__.__name__
             label = TITLE_TRANSLATIONS.get(class_name, class_name)
             with solara.lab.Tab(label, style={"height": "100%"}):
