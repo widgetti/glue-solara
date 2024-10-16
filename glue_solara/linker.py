@@ -1,4 +1,4 @@
-import glue.core.message
+import glue.core.message as msg
 import solara
 from glue.core import DataCollection
 from glue_jupyter import JupyterApplication
@@ -17,7 +17,7 @@ def Linker(app: JupyterApplication, show_list: bool = True):
     selected_data2 = solara.use_reactive(1)
     selected_row2 = solara.use_reactive(0)
     data_collection = app.data_collection
-    use_glue_watch(app.session.hub, glue.core.message.Message)
+    use_glue_watch(app.session.hub, msg.ExternallyDerivableComponentsChangedMessage)
 
     if len(data_collection.data) == 0:
         return solara.Text("No data loaded")
