@@ -7,7 +7,7 @@ name = "glue-solara"
 description = "Flexible Solara based Glue UI"
 version = "0.0.1"
 dependencies = [
-    "solara",
+    "solara>=1.40.0",
     "glue-jupyter",
     "ipypopout",
 ]
