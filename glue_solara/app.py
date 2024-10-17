@@ -14,8 +14,9 @@ from solara import Reactive
 
 from .hooks import ClosedMessage, use_glue_watch, use_glue_watch_close, use_layers_watch
 from .linker import Linker
-from .mdi import MDI_HEADER_SIZES, Mdi, MdiWindow
-from .misc import Snackbar, TabLabel, ToolBar
+from .misc import Snackbar
+from .viewers import GridViewers, MdiViewers, TabbedViewers
+from .viewers.mdi import MDI_HEADER_SIZES, MdiWindow
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
@@ -312,7 +313,7 @@ def Viewers(
         viewers[index].session.hub.broadcast(message)
 
     if view_type.value == "tabs":
-        TabbedViewers(viewers, viewer_index, on_viewer_close)
+        TabbedViewers(viewers, viewer_index, on_viewer_close, TITLE_TRANSLATIONS)
     elif view_type.value == "grid":
         GridViewers(viewers, grid_layout)
     elif view_type.value == "mdi":
@@ -324,115 +325,6 @@ def Viewers(
             on_viewer_index=viewer_index.set,
             on_close=on_viewer_close,
         )
-
-
-@solara.component
-def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
-    # this component does not have the concept of an active viewer
-    layouts = []
-    for viewer in viewers:
-        viewer.figure_widget.layout.height = "600px"
-        layout = solara.Column(
-            children=[
-                ToolBar(viewer),
-                viewer.figure_widget,
-            ],
-            margin=0,
-            style={
-                "height": "100%",
-                "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-            },
-            classes=["elevation-2"],
-        )
-        layouts.append(layout)
-    with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-        with solara.GridDraggable(
-            items=layouts,
-            grid_layout=grid_layout.value,
-            resizable=True,
-            draggable=True,
-            on_grid_layout=grid_layout.set,
-        ):
-            pass
-
-
-@solara.component
-def MdiViewers(
-    viewers: List[Viewer],
-    mdi_layouts: Reactive[List[MdiWindow]],
-    header_size,
-    on_viewer_index: Optional[Callable[[int], None]] = None,
-    on_close: Optional[Callable[[int], None]] = None,
-):
-    # in this component, we only emit the index of the viewer that is active
-    # it cannot be controlled externally (so not a reactive variable)
-    layouts = []
-    with solara.Column(style={"height": "100%", "background-color": "transparent"}):
-        for viewer in viewers:
-            viewer.figure_widget.layout.height = "100%"
-            toolbar = ToolBar(viewer)
-            layout = solara.Column(
-                children=[toolbar, viewer.figure_widget],
-                margin=0,
-                style={
-                    "height": "100%",
-                    "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-                },
-                classes=["elevation-2"],
-            )
-            layouts.append(layout)
-
-        def on_windows(windows_layout):
-            mdi_layouts.set(windows_layout)
-            sorted = list(enumerate(windows_layout))
-            sorted.sort(key=lambda x: x[1]["order"])
-            on_viewer_index(sorted[-1][0])
-
-        with Mdi(
-            children=layouts,
-            windows=mdi_layouts.value,
-            on_windows=on_windows,
-            event_close=on_close,
-            size=header_size,
-        ):
-            pass
-
-
-@solara.component
-def TabbedViewers(
-    viewers: List[Viewer],
-    viewer_index: solara.Reactive[Optional[int]],
-    on_close: Callable[[int], None],
-):
-    # The argument viewer_index is a reactive value for bi-directional communication
-    # it can be changed outside of the component (when a new viewer is added)
-    # or by the tab component, when the user clicks on a tab
-
-    def close_viewer(viewer):
-        index = viewers.index(viewer)
-        on_close(index)
-
-    with solara.lab.Tabs(
-        viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
-    ):
-        for viewer in viewers:
-            viewer.figure_widget.layout.height = "600px"
-            class_name = viewer.__class__.__name__
-            title = TITLE_TRANSLATIONS.get(class_name, class_name)
-            label = TabLabel(viewer, close_viewer, title)
-            with solara.lab.Tab(label, style={"height": "100%"}):
-                toolbar = ToolBar(viewer)
-                layout = solara.Column(
-                    children=[toolbar, viewer.figure_widget],
-                    margin=0,
-                    style={
-                        "height": "100%",
-                        "box-shadow": "0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12) !important;",
-                    },
-                    classes=["elevation-2"],
-                )
-
-                solara.Column(children=[layout], style={"height": "100%"})
 
 
 @solara.component
