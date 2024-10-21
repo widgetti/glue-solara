@@ -15,7 +15,7 @@ from solara import Reactive
 from .hooks import ClosedMessage, use_glue_watch, use_glue_watch_close, use_layers_watch
 from .linker import Linker
 from .mdi import MDI_HEADER_SIZES, Mdi, MdiWindow
-from .misc import Snackbar, ToolBar
+from .misc import Snackbar, TabLabel, ToolBar
 
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
@@ -278,13 +278,52 @@ def GlueApp(app: gj.JupyterApplication):
                             color=main_color,
                             dark=True,
                         )
-        elif view_type.value == "tabs":
-            TabbedViewers(app.viewers, viewer_index)
-        elif view_type.value == "grid":
-            GridViewers(app.viewers, grid_layout)
-        elif view_type.value == "mdi":
-            header_size = MDI_HEADER_SIZES[mdi_header_size_index.value]
-            MdiViewers(app.viewers, mdi_layouts, header_size, on_viewer_index=viewer_index.set)
+        else:
+            Viewers(
+                view_type,
+                app.viewers,
+                mdi_layouts,
+                grid_layout,
+                mdi_header_size_index,
+                viewer_index,
+            )
+
+
+@solara.component
+def Viewers(
+    view_type: solara.Reactive[str],
+    viewers: List[Viewer],
+    mdi_layouts: Reactive[List[MdiWindow]],
+    grid_layout: Reactive[List[Dict]],
+    mdi_header_size_index: solara.Reactive[int],
+    viewer_index: solara.Reactive[Optional[int]],
+):
+    def on_viewer_close(index: int):
+        # Remove the viewer from MDI layouts
+        new_mdi_layouts = mdi_layouts.value
+        new_mdi_layouts.pop(index)
+        mdi_layouts.set(new_mdi_layouts)
+
+        # Pick either the last viewer (after we close) or None
+        viewer_to_activate = None if len(viewers) <= 1 else (len(viewers) - 2)
+        viewer_index.set(viewer_to_activate)
+        # Close the viewer
+        message = ClosedMessage(viewers[index])
+        viewers[index].session.hub.broadcast(message)
+
+    if view_type.value == "tabs":
+        TabbedViewers(viewers, viewer_index, on_viewer_close)
+    elif view_type.value == "grid":
+        GridViewers(viewers, grid_layout)
+    elif view_type.value == "mdi":
+        header_size = MDI_HEADER_SIZES[mdi_header_size_index.value]
+        MdiViewers(
+            viewers,
+            mdi_layouts,
+            header_size,
+            on_viewer_index=viewer_index.set,
+            on_close=on_viewer_close,
+        )
 
 
 @solara.component
@@ -323,6 +362,7 @@ def MdiViewers(
     mdi_layouts: Reactive[List[MdiWindow]],
     header_size,
     on_viewer_index: Optional[Callable[[int], None]] = None,
+    on_close: Optional[Callable[[int], None]] = None,
 ):
     # in this component, we only emit the index of the viewer that is active
     # it cannot be controlled externally (so not a reactive variable)
@@ -348,15 +388,6 @@ def MdiViewers(
             sorted.sort(key=lambda x: x[1]["order"])
             on_viewer_index(sorted[-1][0])
 
-        def on_close(index):
-            new_layouts = mdi_layouts.value
-            new_layouts.pop(index)
-            mdi_layouts.set(new_layouts)
-            on_viewer_index(None)
-            # Close the viewer
-            message = ClosedMessage(viewers[index])
-            viewers[index].session.hub.broadcast(message)
-
         with Mdi(
             children=layouts,
             windows=mdi_layouts.value,
@@ -368,17 +399,27 @@ def MdiViewers(
 
 
 @solara.component
-def TabbedViewers(viewers: List[Viewer], viewer_index: solara.Reactive[Optional[int]]):
+def TabbedViewers(
+    viewers: List[Viewer],
+    viewer_index: solara.Reactive[Optional[int]],
+    on_close: Callable[[int], None],
+):
     # The argument viewer_index is a reactive value for bi-directional communication
     # it can be changed outside of the component (when a new viewer is added)
     # or by the tab component, when the user clicks on a tab
+
+    def close_viewer(viewer):
+        index = viewers.index(viewer)
+        on_close(index)
+
     with solara.lab.Tabs(
         viewer_index, dark=True, background_color="#d0413e", slider_color="#000000"
     ):
         for viewer in viewers:
             viewer.figure_widget.layout.height = "600px"
             class_name = viewer.__class__.__name__
-            label = TITLE_TRANSLATIONS.get(class_name, class_name)
+            title = TITLE_TRANSLATIONS.get(class_name, class_name)
+            label = TabLabel(viewer, close_viewer, title)
             with solara.lab.Tab(label, style={"height": "100%"}):
                 toolbar = ToolBar(viewer)
                 layout = solara.Column(
