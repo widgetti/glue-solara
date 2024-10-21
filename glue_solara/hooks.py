@@ -40,10 +40,12 @@ def use_glue_watch(hub: glue.core.hub.Hub, msg_class=glue.core.message.Message, 
     solara.use_effect(connect, [id(hub)])
 
 
-def use_glue_watch_close(app: glue_jupyter.JupyterApplication):
+def use_glue_watch_close(app: glue_jupyter.JupyterApplication, on_msg=None):
     counter, set_counter = solara.use_state(0)
 
     def remove_viewer(msg):
+        if on_msg is not None:
+            on_msg(msg)
         viewers = app._viewer_refs
         for _viewer in viewers:
             viewer = _viewer()
