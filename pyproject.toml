@@ -18,6 +18,10 @@ dev = [
     "mypy",
 ]
 
+test = [
+    "pytest-ipywidgets",
+]
+
 [tool.ruff]
 ignore-init-module-imports = true
 fix = true
