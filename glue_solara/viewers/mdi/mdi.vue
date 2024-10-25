@@ -173,11 +173,11 @@ export default {
           const dy = this.screenY - e.screenY;
           this.currentWindow.width = Math.max(
             40,
-            this.currentWindowCopy.width - dx
+            this.currentWindowCopy.width - dx,
           );
           this.currentWindow.height = Math.max(
             40,
-            this.currentWindowCopy.height - dy
+            this.currentWindowCopy.height - dy,
           );
         }
       }
@@ -189,7 +189,7 @@ export default {
     },
     remove(window) {
       this.close(
-        this.frontendWindows.findIndex((w) => w.order === window.order)
+        this.frontendWindows.findIndex((w) => w.order === window.order),
       );
     },
     fullscreen(window) {
