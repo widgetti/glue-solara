@@ -1,0 +1,75 @@
+name: Test Workflow
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv pip install ".[test]" --system
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit
+
+  integration-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv pip install ".[test]" --system
+
+      - name: Install Playwright
+        run: |
+          playwright install
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration --video=retain-on-failure --output=test-results
+
+      - name: upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-unit-os${{ matrix.os }}-python${{ matrix.python }}
+          path: test-results
+          include-hidden-files: true
