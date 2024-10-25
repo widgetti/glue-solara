@@ -11,7 +11,7 @@ def GridViewers(viewers: List[Viewer], grid_layout: solara.Reactive[List]):
     # this component does not have the concept of an active viewer
     layouts = []
     for viewer in viewers:
-        viewer.figure_widget.layout.height = "600px"
+        viewer.figure_widget.layout.height = "100%"
         layout = solara.Column(
             children=[
                 ToolBar(viewer),
