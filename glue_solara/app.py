@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, cast
 
@@ -100,22 +101,25 @@ def GlueApp(app: gj.JupyterApplication):
                 error_message.set(str(error))
                 show_error.set(True)
                 return
-        if len(data_collection) == 1:
-            grid_layout.value = [
-                {"h": 18, "i": "0", "moved": False, "w": 12, "x": 0, "y": 0},
-            ]
-        if len(data_collection) == 2:
-            grid_layout.value = [
-                *grid_layout.value,
-                {"h": 18, "i": "0", "moved": False, "w": 12, "x": 18, "y": 0},
-            ]
+        new_viewer_index = len(app.viewers) - 1
+        grid_layout.value = [
+            *grid_layout.value,
+            {
+                "h": 18,
+                "i": str(new_viewer_index),
+                "moved": False,
+                "w": 12,
+                "x": 0,
+                "y": 12 * new_viewer_index,
+            },
+        ]
         class_name = app.viewers[-1].__class__.__name__
         title = TITLE_TRANSLATIONS.get(class_name, class_name)
         mdi_layouts.value = [
             *mdi_layouts.value,
             {"title": title, "width": 800, "height": 600},
         ]
-        viewer_index.set(len(app.viewers) - 1)
+        viewer_index.set(new_viewer_index)
 
     def request_viewer_for(data: glue.core.Data):
         if data.ndim > 1:
@@ -304,6 +308,15 @@ def Viewers(
         new_mdi_layouts = mdi_layouts.value
         new_mdi_layouts.pop(index)
         mdi_layouts.set(new_mdi_layouts)
+
+        # Remove the viewer from grid layouts
+        new_grid_layout = copy.deepcopy(grid_layout.value)
+        new_grid_layout.pop(index)
+        # We need to update the indices of the viewers in the grid layout, otherwise we get placeholder elements
+        for layout in new_grid_layout:
+            if int(layout["i"]) > index:
+                layout["i"] = str(int(layout["i"]) - 1)
+        grid_layout.set(new_grid_layout)
 
         # Pick either the last viewer (after we close) or None
         viewer_to_activate = None if len(viewers) <= 1 else (len(viewers) - 2)
