@@ -305,7 +305,7 @@ def Viewers(
 ):
     def on_viewer_close(index: int):
         # Remove the viewer from MDI layouts
-        new_mdi_layouts = mdi_layouts.value
+        new_mdi_layouts = copy.deepcopy(mdi_layouts.value)
         new_mdi_layouts.pop(index)
         mdi_layouts.set(new_mdi_layouts)
 
