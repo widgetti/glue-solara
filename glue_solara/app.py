@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, cast
 
@@ -309,7 +310,7 @@ def Viewers(
         mdi_layouts.set(new_mdi_layouts)
 
         # Remove the viewer from grid layouts
-        new_grid_layout = grid_layout.value
+        new_grid_layout = copy.deepcopy(grid_layout.value)
         new_grid_layout.pop(index)
         # We need to update the indices of the viewers in the grid layout, otherwise we get placeholder elements
         for layout in new_grid_layout:
