@@ -17,6 +17,8 @@ def Linker(app: JupyterApplication, show_list: bool = True):
     selected_data2 = solara.use_reactive(1)
     selected_row2 = solara.use_reactive(0)
     data_collection = app.data_collection
+    # ExternallyDerivableComponentsChangedMessage is what the link manager uses to communicate changes
+    # See https://github.com/glue-viz/glue/blob/e7c2766d85aceea29aae1a51d95d1189f4444b55/glue/core/data.py#L626-L662
     use_glue_watch(app.session.hub, msg.ExternallyDerivableComponentsChangedMessage)
 
     if len(data_collection.data) == 0:

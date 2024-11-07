@@ -37,7 +37,6 @@ def use_glue_watch(hub: glue.core.hub.Hub, msg_class=glue.core.message.Message, 
 
         def cleanup():
             hub.unsubscribe(listener, msg_class)
-            # print("cleanup", len(hub._subscriptions))
 
         return cleanup
 

@@ -485,6 +485,7 @@ def LinkButton(app: gj.JupyterApplication, disabled: bool = False):
             margin="0px",
         ):
             with solara.v.Sheet():
+                # Avoid loading the linker component, since it listens to messages causing extra re-renders
                 if open_link_editor.value:
                     with solara.Card("Link Editor", margin="0px"):
                         Linker(app)
