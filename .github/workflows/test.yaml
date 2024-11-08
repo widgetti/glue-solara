@@ -6,7 +6,14 @@ on:
       - master
   pull_request:
 
+defaults:
+  run:
+    shell: bash {0}
+
 jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -28,6 +35,7 @@ jobs:
           pre-commit run --all-files
 
   unit-tests:
+    needs: build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,15 +55,22 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      - name: Install dependencies
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wheel-${{ github.run_number }}
+          path: dist
+
+      - name: Install package
         run: |
-          uv pip install ".[test]" --system
+          uv pip install `echo dist/*.whl`[test] --system
 
       - name: Run unit tests
         run: |
           pytest tests/unit
 
   integration-tests:
+    needs: build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -75,9 +90,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      - name: Install dependencies
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wheel-${{ github.run_number }}
+          path: dist
+
+      - name: Install package
         run: |
-          uv pip install ".[test]" --system
+          uv pip install `echo dist/*.whl`[test] --system
 
       - name: Install Playwright
         run: |
