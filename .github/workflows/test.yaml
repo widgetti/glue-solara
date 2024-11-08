@@ -25,10 +25,13 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Install pre-commit
         run: |
-          pip install pre-commit
-          pre-commit install
+          uv pip install pre-commit --system
+          uv run pre-commit install
 
       - name: run pre-commit
         run: |
