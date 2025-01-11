@@ -10,6 +10,7 @@ dependencies = [
     "solara>=1.40.0",
     "glue-jupyter",
     "ipypopout",
+    "ipyreact",
 ]
 
 [project.optional-dependencies]

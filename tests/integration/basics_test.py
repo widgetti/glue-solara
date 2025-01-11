@@ -10,7 +10,7 @@ def test_add_data_current_viewer(
         add_data = page_session.locator("button", has_text="load data")
         add_data.wait_for()
         add_data.click()
-        expect(page_session.locator("button")).to_have_count(4)
+        expect(page_session.locator("button")).to_have_count(5)
         page_session.locator("button", has_text="add w5 data").click()
         page_session.locator("button", has_text="an image").click()
         page_session.locator("div.bqplot.figure").wait_for()
