@@ -31,13 +31,12 @@ class ConvexHullROI(Projected3dROI):
 
         mask = np.zeros(x.shape, dtype=bool)
 
-        # Apparently threeJS uses a y-up coordinate system, as per
-        # https://threejs.org/docs/index.html#api/en/math/Matrix4
-        # TODO: Make this more explicit
-        for i, p in enumerate(zip(y, z, x)):
-            s = self.hull.find_simplex(p)
-            if s >= 0:
-                mask[i] = 1
+        # Apparently threeJS uses a y-up coordinate system
+        # TODO: Make this transformation more explicit
+        points_array = list(zip(y, z, x))
+        points_array = np.array(points_array)
+        s = self.hull.find_simplex(points_array)
+        mask[s >= 0] = True
 
         return mask
 
