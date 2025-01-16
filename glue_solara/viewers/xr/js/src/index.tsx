@@ -3,12 +3,6 @@ import * as THREE from "three";
 import type { CoordinateArrayBinary } from "./types";
 import { Canvas } from "@react-three/fiber";
 
-// re-export needed @react-three components
-export * from "@react-three/fiber";
-// @ts-ignore
-export * from "@react-three/drei";
-export * from "@react-three/xr";
-
 // re-export vizxr components
 export {
   XRStoreProvider,

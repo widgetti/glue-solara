@@ -6,45 +6,96 @@ import terser from "@rollup/plugin-terser";
 
 const production = !process.env.ROLLUP_WATCH;
 
-export default {
-  input: "./src/index.tsx",
-  output: [
-    {
-      file: "./build/glue-xr-viewer.esm.js",
-      format: "es",
-      inlineDynamicImports: true,
+const plugins = [
+  replace({
+    "process.env.NODE_ENV": JSON.stringify(
+      production ? "production" : "development",
+    ),
+  }),
+  nodeResolve({
+    browser: true,
+    extensions: [".js", ".jsx", ".ts", ".tsx"],
+  }),
+  commonjs({
+    namedExports: {
+      scheduler: [
+        "unstable_runWithPriority",
+        "unstable_IdlePriority",
+        "unstable_now",
+        "unstable_scheduleCallback",
+        "unstable_cancelCallback",
+      ],
     },
-  ],
-  external: [
-    "react",
-    "react-dom",
-    "react-reconciler",
-    "react-reconciler/constant",
-  ],
-  plugins: [
-    replace({
-      "process.env.NODE_ENV": JSON.stringify(
-        production ? "production" : "development",
-      ),
-    }),
-    nodeResolve({
-      browser: true,
-      extensions: [".js", ".jsx", ".ts", ".tsx"],
-    }),
-    commonjs({
-      namedExports: {
-        scheduler: [
-          "unstable_runWithPriority",
-          "unstable_IdlePriority",
-          "unstable_now",
-          "unstable_scheduleCallback",
-          "unstable_cancelCallback",
-        ],
-      },
-    }),
-    typescript({
-      // clean: true,
-    }),
-    production && terser(),
-  ],
+  }),
+  typescript({}),
+  production && terser(),
+];
+
+const externals = [
+  "react",
+  "react-dom",
+  "react-reconciler",
+  "react-reconciler/constant",
+];
+
+const output = {
+  dir: "build",
+  entryFileNames: "[name].esm.js",
+  format: "es",
+  inlineDynamicImports: true,
 };
+
+const reactThreeConfig = {
+  output,
+  external: [...externals, "three", "@react-three/fiber"],
+  plugins,
+};
+
+export default [
+  {
+    input: {
+      "glue-xr-viewer": "./src/index.tsx",
+    },
+    output: {
+      dir: "build",
+      entryFileNames: "[name].esm.js",
+      format: "es",
+    },
+    external: [
+      ...externals,
+      "@react-three/fiber",
+      "@react-three/drei",
+      "@react-three/xr",
+      "three",
+    ],
+    plugins,
+  },
+  {
+    input: {
+      three: "./src/threejs.ts",
+    },
+    output,
+    external: externals,
+    plugins,
+  },
+  {
+    input: {
+      "@react-three/fiber": "./src/fiber.ts",
+    },
+    output,
+    external: [...externals, "three"],
+    plugins,
+  },
+  {
+    input: {
+      "@react-three/drei": "./src/drei.ts",
+    },
+    ...reactThreeConfig,
+  },
+  {
+    input: {
+      "@react-three/xr": "./src/xr.ts",
+    },
+    ...reactThreeConfig,
+  },
+];

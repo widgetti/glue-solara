@@ -6,10 +6,19 @@ import numpy as np
 import traitlets
 
 # Ipyreact module defn
+ipyreact.define_module("three", Path(__file__).parent / "js" / "build" / "three.esm.js")
+ipyreact.define_module(
+    "@react-three/fiber", Path(__file__).parent / "js" / "build" / "@react-three" / "fiber.esm.js"
+)
+ipyreact.define_module(
+    "@react-three/drei", Path(__file__).parent / "js" / "build" / "@react-three" / "drei.esm.js"
+)
+ipyreact.define_module(
+    "@react-three/xr", Path(__file__).parent / "js" / "build" / "@react-three" / "xr.esm.js"
+)
 ipyreact.define_module(
     "glue-xr-viewer", Path(__file__).parent / "js" / "build" / "glue-xr-viewer.esm.js"
 )
-# ipyreact.define_module("@react-three/fiber", Path(__file__).parent / "three.bundle.js")
 
 
 class CoordinateArray(TypedDict):
@@ -38,14 +47,18 @@ sar = array_to_binary
 class Canvas(ipyreact.Widget):
     def __init__(self, props={}, events={}, children=[]):
         super().__init__(
-            _module="glue-xr-viewer", _type="Canvas", props=props, events=events, children=children
+            _module="@react-three/fiber",
+            _type="Canvas",
+            props=props,
+            events=events,
+            children=children,
         )
 
 
 class OrbitControls(ipyreact.Widget):
     def __init__(self, props={}, events={}, children=[]):
         super().__init__(
-            _module="glue-xr-viewer",
+            _module="@react-three/drei",
             _type="OrbitControls",
             props=props,
             events=events,
