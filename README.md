@@ -1,6 +1,6 @@
 # glue-solara
 
-development installation:
+development installation requires **npm/nodejs**:
 
     $ pip install -e ".[dev]"
     $ pre-commit install
