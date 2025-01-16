@@ -20,6 +20,7 @@ dev = [
 
 test = [
     "pytest-ipywidgets",
+    "pytest-playwright<0.6", # pytest-playwright doesn't support newer versions, see https://github.com/widgetti/solara/issues/913
 ]
 
 [tool.ruff]
