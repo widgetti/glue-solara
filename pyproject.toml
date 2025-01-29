@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-build-scripts"]
 build-backend = "hatchling.build"
 
 [project]
@@ -10,6 +10,7 @@ dependencies = [
     "solara>=1.40.0",
     "glue-jupyter",
     "ipypopout",
+    "ipyreact>=0.5.0",
 ]
 
 [project.optional-dependencies]
@@ -47,3 +48,14 @@ line-length = 100
 [[tool.mypy.overrides]]
 module = "glue.*,glue_jupyter.*"
 ignore_missing_imports = true
+
+[[tool.hatch.build.hooks.build-scripts.scripts]]
+work_dir = "./glue_solara/viewers/xr/js"
+artifacts = [
+    "build/**",
+]
+out_dir = "./glue_solara/viewers/xr/js/build"
+commands = [
+    "npm ci",
+    "npm run build"
+]

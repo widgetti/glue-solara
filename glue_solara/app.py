@@ -5,7 +5,6 @@ from typing import Callable, Dict, List, Optional, cast
 import glue.core.hub
 import glue.core.message as msg
 import glue_jupyter as gj
-import glue_jupyter.app
 import glue_jupyter.bqplot.histogram
 import glue_jupyter.bqplot.image
 import glue_jupyter.bqplot.scatter
@@ -15,6 +14,7 @@ import solara.lab
 from glue.viewers.common.viewer import Viewer
 from glue_jupyter.data import require_data
 from glue_jupyter.registries import viewer_registry
+from glue_jupyter.utils import validate_data_argument
 from solara import Reactive
 
 from .hooks import ClosedMessage, use_glue_watch, use_glue_watch_close, use_layers_watch
@@ -23,6 +23,79 @@ from .misc import Snackbar
 from .viewers import GridViewers, MdiViewers, TabbedViewers
 from .viewers.mdi import MDI_HEADER_SIZES, MdiWindow
 
+# Initialize our viewer, since it isn't a 'proper' plugin (yet)
+if "xr" not in viewer_registry.members:
+    from .viewers.xr import setup as xr_setup
+
+    xr_setup()
+
+
+class JupyterApplicationWithXR(gj.JupyterApplication):
+    def xr_scatter3d(self, *, data=None, x=None, y=None, z=None, widget="xr", show=True):
+        """
+        Open an interactive 3d scatter plot viewer.
+
+        Parameters
+        ----------
+        data : str or `~glue.core.data.Data`, optional
+            The initial dataset to show in the viewer. Additional
+            datasets can be added later using the ``add_data`` method on
+            the viewer object.
+        x : str or `~glue.core.component_id.ComponentID`, optional
+            The attribute to show on the x axis.
+        y : str or `~glue.core.component_id.ComponentID`, optional
+            The attribute to show on the y axis.
+        z : str or `~glue.core.component_id.ComponentID`, optional
+            The attribute to show on the z axis.
+        widget : {'ipyvolume', 'vispy', 'xr'}
+            Whether to use ipyvolume, VisPy, or ThreeJS as the front-end.
+        show : bool, optional
+            Whether to show the view immediately (`True`) or whether to only
+            show it later if the ``show()`` method is called explicitly
+            (`False`).
+        """
+
+        if widget == "ipyvolume":
+            from glue_jupyter.ipyvolume import IpyvolumeScatterView
+
+            viewer_cls = IpyvolumeScatterView
+        elif widget == "vispy":
+            from glue_vispy_viewers.scatter.jupyter import JupyterVispyScatterViewer
+
+            viewer_cls = JupyterVispyScatterViewer
+        elif widget == "xr":
+            from glue_solara.viewers.xr.viewer import XRBaseView
+
+            viewer_cls = XRBaseView
+        else:
+            raise ValueError("widget= should be 'ipyvolume', 'vispy', or 'xr'")
+
+        data = validate_data_argument(self.data_collection, data)
+
+        view = self.new_data_viewer(viewer_cls, data=data, show=show)
+        if x is not None:
+            x = data.id[x]
+            view.state.x_att = x
+        if y is not None:
+            y = data.id[y]
+            view.state.y_att = y
+        if z is not None:
+            z = data.id[z]
+            view.state.z_att = z
+
+        if data.label == "boston_planes_6h":
+            view.state.x_att = data.id["x"]
+            view.state.y_att = data.id["y"]
+            view.state.z_att = data.id["altitude"]
+
+        if data.label == "w5_psc":
+            view.state.x_att = data.id["RAJ2000"]
+            view.state.y_att = data.id["DEJ2000"]
+            view.state.z_att = data.id["Jmag"]
+
+        return view
+
+
 # logging.basicConfig(level="INFO", force=True)
 # logging.getLogger("glue").setLevel("DEBUG")
 
@@ -30,7 +103,8 @@ if not Path("w5.fits").exists():
     require_data("Astronomy/W5/w5.fits")
 if not Path("w5_psc.csv").exists():
     require_data("Astronomy/W5/w5_psc.csv")
-
+if not Path("boston_planes_6h.csv").exists():
+    require_data("Planes/boston_planes_6h.csv")
 
 main_color = "#d0413e"
 nice_colors = [
@@ -49,7 +123,12 @@ nice_colors = [
 
 VIEWER_TYPES = list(map(lambda k: k.title(), viewer_registry.members.keys()))
 
-VIEWER_METHODS = {"Histogram": "histogram1d", "Scatter": "scatter2d", "Image": "imshow"}
+VIEWER_METHODS = {
+    "Histogram": "histogram1d",
+    "Scatter": "scatter2d",
+    "Image": "imshow",
+    "Xr": "xr_scatter3d",
+}
 
 TITLE_TRANSLATIONS = {
     "BqplotScatterView": "2d Scatter",
@@ -70,7 +149,7 @@ def Page():
     """This component is used by default in solara server (standalone app)"""
 
     def create_glue_application() -> gj.JupyterApplication:
-        app = glue_jupyter.app.JupyterApplication()
+        app = JupyterApplicationWithXR()
         return app
 
     # make the app only once
@@ -421,6 +500,19 @@ def LoadData(app: gj.JupyterApplication):
             icon_name="mdi-cloud-outline",
         )
         solara.Button("Upload data", text=True, icon_name="mdi-cloud-upload", disabled=True)
+
+        def add_plane_data():
+            path = "boston_planes_6h.csv"
+            data_image = app.load_data(path)
+            data_image.style.color = "blue"
+
+        solara.Button(
+            "Add Boston planes data",
+            on_click=add_plane_data,
+            text=True,
+            icon_name="mdi-airplane",
+            style={"width": "100%", "justify-content": "left"},
+        )
 
         def add_w5():
             data_image = app.load_data("w5.fits")
